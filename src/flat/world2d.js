@@ -13,12 +13,12 @@ export class World2D {
     engine.cam.x = this.av.x - engine.visW / 2;
   }
   floorTarget(w) { return { x: Math.max(30, Math.min(WORLD_W - 30, w.x)), y: Math.max(WALK_Y0, Math.min(WALK_Y1, w.y)) }; }
-  down(p, ev) {
+  down(p, ev) { if (this.scene?.active) return this.scene.pointer('down', p);
     const w = this.e.toWorld(p); if (this.hooks.pick?.(w, p)) return;
     this.holding = { id: p.id, t: p.t, sx: p.sx, sy: p.sy, moved: false }; this.setTarget(w);
   }
-  move(p) { if (!this.holding || p.id !== this.holding.id) return; if (Math.hypot(p.sx - this.holding.sx, p.sy - this.holding.sy) > 8) this.holding.moved = true; this.setTarget(this.e.toWorld(p)); }
-  up(p) { const h = this.holding; if (!h || p.id !== h.id) return; this.holding = null;
+  move(p) { if (this.scene?.active) return this.scene.pointer('move', p); if (!this.holding || p.id !== this.holding.id) return; if (Math.hypot(p.sx - this.holding.sx, p.sy - this.holding.sy) > 8) this.holding.moved = true; this.setTarget(this.e.toWorld(p)); }
+  up(p) { if (this.scene?.active) return this.scene.pointer('up', p); const h = this.holding; if (!h || p.id !== h.id) return; this.holding = null;
     // quick tap keeps walking to the spot; a held drag stops where the finger lifts
     if (h.moved || p.t - h.t > 280) this.av.has = false; }
   walkTo(x, y) { this.setTarget({ x, y }); }
