@@ -373,7 +373,7 @@ export class StylistAvatar {
         let nx = cur.x + (dx / dist) * step;
         let nz = cur.z + (dz / dist) * step;
         if (boundsFn) {
-          const clamped = boundsFn(nx, nz);
+          const clamped = boundsFn(nx, nz, cur.x, cur.z);
           nx = clamped.x;
           nz = clamped.z;
         }

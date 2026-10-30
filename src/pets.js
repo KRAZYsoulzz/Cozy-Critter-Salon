@@ -920,8 +920,9 @@ export class CritterPet {
         this.isWalking = true;
         const speed = this.followingPlayer ? 3.4 : 1.65;
         const step = Math.min(dist, speed * dt);
-        cur.x += (dx / dist) * step;
-        cur.z += (dz / dist) * step;
+        let px = cur.x + (dx / dist) * step, pz = cur.z + (dz / dist) * step;
+        if (boundsFn) { const c = boundsFn(px, pz, cur.x, cur.z); px = c.x; pz = c.z; }
+        cur.x = px; cur.z = pz;
 
         const targetAngle = Math.atan2(dx, dz);
         let diff = targetAngle - this.root.rotation.y;

@@ -416,6 +416,7 @@ export class CozyCritterApp {
     this.activeStation = null;
     this.mode = 'world';
     this.avatar.root.visible = true;
+    { const o = this.world.clampPosition(this.avatar.root.position.x, this.avatar.root.position.z); this.avatar.root.position.x = o.x; this.avatar.root.position.z = o.z; this.avatar.hasTarget = false; }
     for (const p of Object.values(this.pets)) p.root.visible = true;
 
     this.ui.activityHud.classList.add('hidden');
@@ -669,7 +670,7 @@ export class CozyCritterApp {
     this.avatar.update(
       dt,
       this.mode === 'world' ? this.sound : null,
-      (x, z) => this.world.clampPosition(x, z)
+      (x, z, fx, fz) => this.world.clampPosition(x, z, fx, fz)
     );
 
     // Update Pets
@@ -677,7 +678,7 @@ export class CozyCritterApp {
       pet.update(
         dt,
         this.mode === 'world' ? this.avatar.root.position : null,
-        this.mode === 'world' ? (x, z) => this.world.clampPosition(x, z) : null
+        this.mode === 'world' ? (x, z, fx, fz) => this.world.clampPosition(x, z, fx, fz) : null
       );
     }
 
