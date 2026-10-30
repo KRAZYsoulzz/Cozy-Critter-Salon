@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flat art preview</title><style>html,body{margin:0;height:100%;background:#222;overflow:hidden}canvas{width:100vw;height:100vh;display:block}</style></head>
+<body><canvas id="c"></canvas><script type="module">
+import { drawRoom, drawRug, drawCapybara, drawAxolotl, drawBubble, strawberry, sponge } from './flat/art.js';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const q = new URLSearchParams(location.search), exprA = q.get('a') || 'idle', exprB = q.get('b') || 'happy', freeze = q.get('t');
+function grain(W, H) { const g = document.createElement('canvas'); g.width = 256; g.height = 256; const x = g.getContext('2d'), d = x.createImageData(256, 256);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 14; } x.putImageData(d, 0, 0); return g; }
+const gr = grain();
+function frame(ms) {
+  const dpr = Math.min(2, devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+  if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  const t = freeze ? +freeze : ms / 1000;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  drawRoom(ctx, W, H);
+  const u = Math.min(W / 1024, H / 473) * .62;
+  const blink = (t % 3.4) < .14 ? 1 : 0;
+  ctx.save(); ctx.translate(W * .32, H * .93); ctx.scale(u * .9, u * .9); // rugs + pets
+  ctx.restore();
+  drawRug(ctx, W * .32, H * .87, 200 * u, 130 * u); drawRug(ctx, W * .68, H * .87, 200 * u, 130 * u, '#4e8fd0', '#6bb0ee');
+  ctx.save(); ctx.translate(W * .32, H * .9); ctx.scale(u * .92, u * .92); drawCapybara(ctx, t, exprA, blink); ctx.restore();
+  ctx.save(); ctx.translate(W * .68, H * .9); ctx.scale(u * .92, u * .92); drawAxolotl(ctx, t, exprB, blink); ctx.restore();
+  drawBubble(ctx, W * .4, H * .24, u * 1.5, (c, x, y, s) => sponge(c, x, y, s * 1.2));
+  drawBubble(ctx, W * .78, H * .26, u * 1.5, (c, x, y, s) => strawberry(c, x, y, s * 1.2));
+  ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = ctx.createPattern(gr, 'repeat'); ctx.globalAlpha = .6; ctx.fillRect(0, 0, W, H); ctx.restore();
+  if (!freeze) requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame); window.__ready = true;
+</script></body></html>
