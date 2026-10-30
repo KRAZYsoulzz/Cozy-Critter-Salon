@@ -1,13 +1,14 @@
 ﻿// ============================================================================
-// Cozy Critter Salon & Spa 3D - Offline PWA Service Worker (sw.js)
+// Cozy Critter Salon & Spa (2D) - Offline PWA Service Worker (sw.js)
 // ============================================================================
-const CACHE_NAME = 'cozy-critter-3d-v12';
+const CACHE_NAME = 'cozy-critter-2d-v1';
 const CORE_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './polish.css',
   './mobile.css',
+  './portrait2d.css',
   './vendor/fonts/Fredoka.ttf',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -23,17 +24,6 @@ const CORE_ASSETS = [
   './vendor/three.core.js',
   './vendor/jsm/geometries/RoundedBoxGeometry.js',
   './vendor/jsm/utils/BufferGeometryUtils.js',
-  './vendor/jsm/postprocessing/EffectComposer.js',
-  './vendor/jsm/postprocessing/RenderPass.js',
-  './vendor/jsm/postprocessing/UnrealBloomPass.js',
-  './vendor/jsm/postprocessing/OutputPass.js',
-  './vendor/jsm/postprocessing/ShaderPass.js',
-  './vendor/jsm/postprocessing/Pass.js',
-  './vendor/jsm/postprocessing/MaskPass.js',
-  './vendor/jsm/shaders/CopyShader.js',
-  './vendor/jsm/shaders/LuminosityHighPassShader.js',
-  './vendor/jsm/shaders/OutputShader.js',
-  './src/main.js',
   './src/gfx.js',
   './src/icons.js',
   './src/itemicons.js',
@@ -41,15 +31,11 @@ const CORE_ASSETS = [
   './src/shop-data.js',
   './src/audio.js',
   './src/voice.js',
-  './src/characters.js',
-  './src/pets.js',
   './src/world.js',
+  './src/collide.js',
+  './src/flat/app2d.js', './src/flat/engine.js', './src/flat/world2d.js', './src/flat/rooms.js', './src/flat/art.js', './src/flat/props.js',
+  './src/flat/collide2d.js', './src/flat/avatar.js', './src/flat/pets2d.js', './src/flat/activity2d.js', './src/flat/modes2d.js', './src/flat/upgrades2d.js',
   './src/ui.js',
-  './src/activities/spa.js',
-  './src/activities/vet.js',
-  './src/activities/kitchen.js',
-  './src/activities/lobby.js',
-  './src/activities/yard.js',
   './audio/voice/lines.json'
 ];
 

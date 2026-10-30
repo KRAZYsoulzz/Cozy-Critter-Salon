@@ -1,6 +1,7 @@
 // Close-up activity scenes on a 1000x540 stage over a dimmed room backdrop. Spa is first; others register the same way.
 import { drawRoomN, RW } from './rooms.js';
 import { MODES } from './modes2d.js';
+import { drawUpgrades } from './upgrades2d.js';
 import { drawPet } from './pets2d.js';
 import { sponge, shapeS } from './art.js';
 import { INK, el, ln, slab, towels, brush, comb, hairdryer, heart, star } from './props.js';
@@ -96,7 +97,7 @@ export class ActivityScene {
     const a = this.active; if (!a) return; const V = this.view(), S = V.S, ox = (e.W - SW * S) / 2, oy = (e.H - SH * S) / 2, dpr = e.dpr;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     // dimmed room backdrop, scaled to cover the screen
-    c.save(); const kb = Math.max(e.W / RW, e.H / SH); c.translate((e.W - RW * kb) / 2, (e.H - SH * kb) / 2); c.scale(kb, kb); c.translate(-ROOM_OF[a.kind] * RW, 0); drawRoomN(c, ROOM_OF[a.kind], e.time); c.restore();
+    c.save(); const kb = Math.max(e.W / RW, e.H / SH); c.translate((e.W - RW * kb) / 2, (e.H - SH * kb) / 2); c.scale(kb, kb); c.translate(-ROOM_OF[a.kind] * RW, 0); drawRoomN(c, ROOM_OF[a.kind], e.time); drawUpgrades(c, ROOM_OF[a.kind], this.w.save.state.roomUpgrades, e.time, RW); c.restore();
     c.fillStyle = 'rgba(30,10,50,.58)'; c.fillRect(0, 0, e.W, e.H);
     const vg = c.createRadialGradient(e.W / 2, e.H / 2, Math.min(e.W, e.H) * .3, e.W / 2, e.H / 2, Math.max(e.W, e.H) * .72); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,0,30,.6)'); c.fillStyle = vg; c.fillRect(0, 0, e.W, e.H);
     c.translate(ox, oy); c.scale(S, S);

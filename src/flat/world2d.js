@@ -2,6 +2,7 @@
 import { drawRoomN, drawPartition, ROOMS, RW, WORLD_W, WALK_Y0, WALK_Y1, OBSTACLE_BOXES, OBSTACLE_CIRCLES, STATIONS } from './rooms.js';
 import { makeCollider } from './collide2d.js';
 import { drawAvatar } from './avatar.js';
+import { drawUpgrades } from './upgrades2d.js';
 const SPEED = 230;
 export class World2D {
   constructor(engine, save, hooks = {}) {
@@ -37,7 +38,7 @@ export class World2D {
   draw(c, e) {
     const t = e.time, x0 = e.cam.x, x1 = x0 + e.visW, oy = e.offY; c.translate(0, oy);
     for (let i = 0; i < 5; i++) if (i * RW < x1 && (i + 1) * RW > x0) { const R = ROOMS[i]; c.fillStyle = R.wall; c.fillRect(i * RW - 1, -oy - 40, RW + 2, oy + 41); c.fillStyle = R.floor2; c.fillRect(i * RW - 1, 539, RW + 2, e.visH + 40); }
-    for (let i = 0; i < 5; i++) if (i * RW < x1 && (i + 1) * RW > x0) drawRoomN(c, i, t);
+    for (let i = 0; i < 5; i++) if (i * RW < x1 && (i + 1) * RW > x0) { drawRoomN(c, i, t); drawUpgrades(c, i, this.save.state.roomUpgrades, t, RW); }
     for (let k = 1; k < 5; k++) if (Math.abs(k * RW - (x0 + e.visW / 2)) < e.visW / 2 + 40) drawPartition(c, k);
     // depth-sorted sprites (avatar + followers)
     const list = [{ y: this.av.y, draw: () => { const s = .86 + (this.av.y - WALK_Y0) / (WALK_Y1 - WALK_Y0) * .24; c.save(); c.translate(this.av.x, this.av.y); c.scale(s * this.av.face * 1, s); drawAvatar(c, this.save.state.avatar, { t: this.av.t, walking: this.av.walking, wave: this.av.wave > 0, blink: this.blinkAt < 0 }); c.restore(); } }, ...this.sprites];
