@@ -1,0 +1,7 @@
+/* Portrait phones: side panels become bottom sheets so the 2D world stays visible above them. */
+@media (orientation: portrait) {
+  .side-panel-modal { top: auto !important; left: 8px !important; right: 8px !important; bottom: 8px !important; width: auto !important; height: 55vh !important; max-height: 55vh !important; }
+  .side-panel-card { max-height: 100% !important; }
+  #avatar-modal .side-panel-card, .shop-panel-card { overflow-y: auto; }
+  .world-extras { right: 8px; }
+}

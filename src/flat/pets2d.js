@@ -84,7 +84,7 @@ const ICONS = { sponge: (c, x, y, s) => sponge(c, x, y, s * 1.2), berry: (c, x, 
 
 export class PetManager {
   constructor(world) {
-    this.w = world; this.pets = {}; this.t = 0; world.hooks.pick = (pt, p) => this.pick(pt); world.hooks.stationGo = world.hooks.stationGo || null;
+    this.w = world; this.pets = {}; this.override = {}; this.callAll = false; this.t = 0; world.hooks.pick = (pt, p) => this.pick(pt); world.hooks.stationGo = world.hooks.stationGo || null;
     const st = world.save.state, home = { capybara: 1, axolotl: 0, dikdik: 4 };
     for (const id of ['capybara', 'axolotl', 'dikdik']) { const h = home[id], hx = h * RW + (id === 'capybara' ? 250 : id === 'axolotl' ? 300 : 360);
       const o = { id, x: hx, y: 488, hx, hy: 488, face: 1, react: 0, reactExpr: 'happy', moving: 0, blink: 0, sprite: null }; o.sprite = { get y() { return o.y; }, draw: c => this.draw(c, o) }; this.pets[id] = o; world.sprites.push(o.sprite); }
@@ -96,16 +96,16 @@ export class PetManager {
     this.t += dt; const w = this.w, av = w.av, act = this.w.save.state.activePet;
     for (const o of Object.values(this.pets)) {
       o.react = Math.max(0, o.react - dt); let tx, ty;
-      if (o.id === act) { const behind = -av.face * 78; tx = av.x + behind; ty = Math.max(WALK_Y0, Math.min(WALK_Y1, av.y + 6)); } else { tx = o.hx + Math.sin(this.t * .4 + o.hx) * 26; ty = o.hy; }
+      if (o.id === act || this.callAll) { const behind = -av.face * (78 + (o.id === act ? 0 : 56 + ['capybara', 'axolotl', 'dikdik'].indexOf(o.id) * 14)); tx = av.x + behind; ty = Math.max(WALK_Y0, Math.min(WALK_Y1, av.y + 6)); } else { tx = o.hx + Math.sin(this.t * .4 + o.hx) * 26; ty = o.hy; }
       const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy); let mv = 0;
-      if (d > (o.id === act ? 38 : 4)) { const st = Math.min(d, (o.id === act ? 215 : 40) * dt), r = w.col.move(o.x, o.y, o.x + dx / d * st, o.y + dy / d * st); mv = Math.hypot(r.x - o.x, r.z - o.y); o.x = r.x; o.y = r.z; if (Math.abs(dx) > 8) o.face = dx > 0 ? 1 : -1; }
+      if (d > ((o.id === act || this.callAll) ? 38 : 4)) { const st = Math.min(d, ((o.id === act || this.callAll) ? 215 : 40) * dt), r = w.col.move(o.x, o.y, o.x + dx / d * st, o.y + dy / d * st); mv = Math.hypot(r.x - o.x, r.z - o.y); o.x = r.x; o.y = r.z; if (Math.abs(dx) > 8) o.face = dx > 0 ? 1 : -1; }
       o.moving += ((mv > .1 ? 1 : 0) - o.moving) * Math.min(1, dt * 8); o.blink -= dt; if (o.blink < -.14) o.blink = 2.4 + Math.random() * 2.4;
     }
   }
   mood(o) { if (o.react > 0) return o.reactExpr; const s = this.state(o.id).stats; return Math.min(s.health, s.cleanliness, s.hunger) < 50 ? 'sad' : (s.love + s.energy) / 2 > 85 ? 'happy' : 'idle'; }
   scaleAt(y) { return .78 + (y - WALK_Y0) / (WALK_Y1 - WALK_Y0) * .2; }
   draw(c, o) { const p = this.state(o.id), s = this.scaleAt(o.y) * .5, hop = Math.abs(Math.sin(this.t * 10)) * 6 * o.moving;
-    c.save(); c.translate(o.x, o.y - hop); c.scale(s * o.face * (o.id === 'axolotl' ? 1 : 1), s); drawPet(c, o.id, this.t, this.mood(o), o.blink > 0 ? 0 : 1, p.equipped, p.stats); c.restore(); }
+    c.save(); c.translate(o.x, o.y - hop); c.scale(s * o.face * (o.id === 'axolotl' ? 1 : 1), s); drawPet(c, o.id, this.t, this.mood(o), o.blink > 0 ? 0 : 1, this.override[o.id] || p.equipped, p.stats); c.restore(); }
   bubbleAt(o) { return { x: o.x + 10, y: o.y - 300 * this.scaleAt(o.y) * .5 - 90 }; }
   drawBubbles(c, e) { c.translate(0, e.offY); for (const o of Object.values(this.pets)) { const n = petNeed(this.state(o.id)); if (!n || o.x < e.cam.x - 80 || o.x > e.cam.x + e.visW + 80) continue; const b = this.bubbleAt(o), bob = Math.sin(this.t * 2.2 + o.x) * 4; drawBubble(c, b.x - 8, b.y + bob - 30, .8, ICONS[n.icon]); } }
   pick(w) {

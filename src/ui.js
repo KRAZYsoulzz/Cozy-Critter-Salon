@@ -589,6 +589,7 @@ export class UIManager {
     bindTap(document.getElementById('btn-close-clipboard'), () => {
       this.app.sound.playBubblePop();
       this.clipboardModal.classList.add('hidden');
+      this.app.exitActivity();
     });
   }
 
@@ -598,7 +599,7 @@ export class UIManager {
   openShopModal() {
     this.shopModal.classList.remove('hidden');
     this.shopSel = null;
-    this.setSpeechPrompt('shop_welcome', 'Welcome to the Critter Boutique! Tap any item to try it on in 3D!', true);
+    this.setSpeechPrompt('shop_welcome', 'Welcome to the Critter Boutique! Tap any item to try it on!', true);
     this.renderShop();
 
     document.querySelectorAll('[data-shop-tab]').forEach(tabBtn => {

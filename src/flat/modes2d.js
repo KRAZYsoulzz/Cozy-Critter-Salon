@@ -100,8 +100,8 @@ export function yardMode(sc, a) {
   sc.say('yard_minigame_start', 'Catch the treats!');
   return { label: 'Slide to catch the falling treats!',
     pointer(k, pt) { if (k === 'down') { down = true; a.tx = pt.x; } else if (k === 'move' && down) a.tx = pt.x; else if (k === 'up') down = false; },
-    update(dt) { if (a.done) return; a.px += (a.tx - a.px) * Math.min(1, dt * 10); a.px = Math.max(150, Math.min(850, a.px)); a.hopT = Math.max(0, a.hopT - dt);
-      a.spawnT -= dt; if (a.spawnT <= 0 && a.spawned < a.total) { a.spawned++; a.spawnT = .85 + Math.random() * .4; a.treats.push({ id: FOODS[Math.floor(Math.random() * 5)], x: 140 + Math.random() * 720, y: -30, vy: 190 + a.spawned * 6, rot: 0, sp: (Math.random() - .5) * 4 }); }
+    update(dt) { if (a.done) return; a.px += (a.tx - a.px) * Math.min(1, dt * 10); a.px = Math.max(210, Math.min(790, a.px)); a.hopT = Math.max(0, a.hopT - dt);
+      a.spawnT -= dt; if (a.spawnT <= 0 && a.spawned < a.total) { a.spawned++; a.spawnT = .85 + Math.random() * .4; a.treats.push({ id: FOODS[Math.floor(Math.random() * 5)], x: 200 + Math.random() * 600, y: -30, vy: 190 + a.spawned * 6, rot: 0, sp: (Math.random() - .5) * 4 }); }
       for (const t of a.treats) { t.y += t.vy * dt; t.rot += t.sp * dt; if (Math.abs(t.x - a.px) < 80 && t.y > 330 && t.y < 470 && !t.got) { t.got = true; a.caught++; a.hopT = .35; sc.audio.sound?.playMarimbaNote?.(); for (let i = 0; i < 4; i++) sc.spark(t.x, t.y); } }
       a.treats = a.treats.filter(t => !t.got && t.y < 580);
       if (a.spawned >= a.total && !a.treats.length && !a.finishing) { a.finishing = true; const co = 4 + a.caught * 2; sc.finishMode(a, { coins: co, text: `Caught ${a.caught} of ${a.total}!  +${co}`, voice: 'yard_minigame_complete', stats: { love: 10 }, energy: -8 }); } },

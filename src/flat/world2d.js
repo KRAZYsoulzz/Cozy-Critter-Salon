@@ -26,6 +26,7 @@ export class World2D {
   nearestStation() { let best = null, bd = 1e9; for (const s of STATIONS) { const sx = s.room * RW + s.x, d = Math.hypot(this.av.x - sx, (this.av.y - s.y) * 1.4); if (d < 100 && d < bd) { bd = d; best = s; } } return best; }
   update(dt) {
     const a = this.av; a.t += dt; a.wave = Math.max(0, a.wave - dt);
+    const j = this.joy; if (j && Math.hypot(j.x, j.y) > .18) { this.setTarget({ x: a.x + j.x * 140, y: a.y + j.y * 70 }); this.joyOn = true; } else if (this.joyOn) { this.joyOn = false; a.has = false; }
     if (a.has) { const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
       if (d < 6) { a.has = false; } else { const st = Math.min(d, SPEED * dt), r = this.col.move(a.x, a.y, a.x + dx / d * st, a.y + dy / d * st); const moved = Math.hypot(r.x - a.x, r.z - a.y); a.x = r.x; a.y = r.z; if (moved < st * .15) { a.stall = (a.stall || 0) + dt; if (a.stall > .35 && !this.holding) a.has = false; } else a.stall = 0; if (Math.abs(dx) > 6) a.face = dx > 0 ? 1 : -1; } }
     a.walking += ((a.has ? 1 : 0) - a.walking) * Math.min(1, dt * 10);
@@ -35,6 +36,7 @@ export class World2D {
   }
   draw(c, e) {
     const t = e.time, x0 = e.cam.x, x1 = x0 + e.visW, oy = e.offY; c.translate(0, oy);
+    for (let i = 0; i < 5; i++) if (i * RW < x1 && (i + 1) * RW > x0) { const R = ROOMS[i]; c.fillStyle = R.wall; c.fillRect(i * RW - 1, -oy - 40, RW + 2, oy + 41); c.fillStyle = R.floor2; c.fillRect(i * RW - 1, 539, RW + 2, e.visH + 40); }
     for (let i = 0; i < 5; i++) if (i * RW < x1 && (i + 1) * RW > x0) drawRoomN(c, i, t);
     for (let k = 1; k < 5; k++) if (Math.abs(k * RW - (x0 + e.visW / 2)) < e.visW / 2 + 40) drawPartition(c, k);
     // depth-sorted sprites (avatar + followers)

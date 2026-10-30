@@ -33,19 +33,20 @@ export class ActivityScene {
     this.w = world; this.pets = pets; this.audio = audio; this.active = null; this.parts = []; this.t = 0; this.ptr = null; this.banner = 0;
     world.e.layers.push((c, e) => this.draw(c, e)); world.e.updaters.push(dt => this.update(dt)); world.scene = this;
   }
-  map(p) { const e = this.w.e, S = Math.min(e.W / SW, e.H / SH); return { x: (p.sx - (e.W - SW * S) / 2) / S, y: (p.sy - (e.H - SH * S) / 2) / S, S }; }
+  view() { const e = this.w.e, port = e.W < e.H * 1.15, vw = port ? 640 : SW; return { port, vw, S: Math.min(e.W / vw, e.H / SH), xl: port ? 500 - vw / 2 : 0 }; }
+  map(p) { const e = this.w.e, S = this.view().S; return { x: (p.sx - (e.W - SW * S) / 2) / S, y: (p.sy - (e.H - SH * S) / 2) / S, S }; }
   enter(kind) {
     const pid = this.w.save.state.activePet, st = this.w.save.state.pets[pid]; this.parts = [];
     this.active = { kind, pid, steps: kind === 'spa' ? SPA_STEPS : [], step: 0, done: false, spots: SPOTS.map(s => ({ x: s[0], y: s[1], r: s[2], hp: 1 })), foam: [], wet: 0, shine: 0, stroke: 0, rubbed: 0, reaction: 0, t0: this.t, exitBtn: false };
     if (MODES[kind]) this.active.mode = MODES[kind](this, this.active); else { this.active.tool = this.active.steps[0].tool; this.say(this.active.steps[0].voice, this.active.steps[0].label); }
     document.getElementById('prompt')?.classList.remove('on'); this.audio.sound?.playBubblePop?.(); this.w.av.has = false; this.w.holding = null;
   }
-  exit() { this.active = null; this.ptr = null; document.getElementById('prompt')?.classList.remove('on'); }
+  exit(quiet) { const was = this.active; this.active = null; this.ptr = null; if (was && !quiet) this.hooks?.exit?.(); }
   say(id, text) { try { this.audio.voice?.speak(id, text); } catch (e) { /* voice optional */ } }
   pointer(kind, p) {
     const a = this.active; if (!a) return; const m = this.map(p), pt = { x: m.x, y: m.y };
     if (kind === 'down') {
-      if (Math.hypot(pt.x - 56, pt.y - 48) < 40) { this.exit(); return; }
+      if (Math.hypot(pt.x - (this.view().xl + 56), pt.y - 104) < 44) { this.exit(); return; }
       if (a.done) { if (Math.abs(pt.x - 500) < 150 && Math.abs(pt.y - 380) < 40) this.exit(); return; }
       if (a.mode) { a.mode.pointer('down', pt); return; }
       a.steps.forEach((s, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120; if (Math.hypot(pt.x - tx, pt.y - 500) < 52 && i <= a.step) a.tool = s.tool; });
@@ -71,16 +72,17 @@ export class ActivityScene {
     const a = this.active, sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.step = a.steps.length;
     st.stats.cleanliness = 100; st.stats.love = Math.min(100, st.stats.love + 8); st.dirtSpots = []; st.teethSparkly = true;
     const before = sv.state.routinesCompleted || 0; sv.addReward(15, 1); if ((sv.state.routinesCompleted || 0) === before) sv.state.routinesCompleted = before + 1; sv.save();
-    document.getElementById('coin-n') && (document.getElementById('coin-n').textContent = sv.state.coins);
+    this.hooks?.reward?.();
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
     this.audio.sound?.playFanfare?.(); this.say('spa_complete', 'All sparkly clean!');
   }
+  banner2(c, V, label) { const w = Math.min(V.vw - 24, 40 + label.length * 15), sz = Math.min(26, (w - 36) / (label.length * .5)); pill(c, 500, 44, w, 54); text(c, label, 500, 45, sz); }
   finishMode(a, o) {
     if (this.active !== a || a.done) return; const sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.doneText = o.text;
     for (const k in (o.stats || {})) st.stats[k] = k === 'love' ? Math.min(100, (st.stats.love || 0) + o.stats[k]) : o.stats[k];
     if (o.energy) st.stats.energy = Math.max(0, (st.stats.energy ?? 100) + o.energy); if (o.cure) { st.ailments = []; st.health = 100; }
     const before = sv.state.routinesCompleted || 0; sv.addReward(o.coins, 1); if ((sv.state.routinesCompleted || 0) === before) sv.state.routinesCompleted = before + 1; sv.save();
-    document.getElementById('coin-n') && (document.getElementById('coin-n').textContent = sv.state.coins);
+    this.hooks?.reward?.();
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
     this.audio.sound?.playFanfare?.(); this.say(o.voice, o.text);
   }
@@ -91,7 +93,7 @@ export class ActivityScene {
     for (const p of this.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'conf') { p.vy += 40 * dt; p.rot += dt * 6; } }
     this.parts = this.parts.filter(p => p.life > 0); }
   draw(c, e) {
-    const a = this.active; if (!a) return; const S = Math.min(e.W / SW, e.H / SH), ox = (e.W - SW * S) / 2, oy = (e.H - SH * S) / 2, dpr = e.dpr;
+    const a = this.active; if (!a) return; const V = this.view(), S = V.S, ox = (e.W - SW * S) / 2, oy = (e.H - SH * S) / 2, dpr = e.dpr;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     // dimmed room backdrop, scaled to cover the screen
     c.save(); const kb = Math.max(e.W / RW, e.H / SH); c.translate((e.W - RW * kb) / 2, (e.H - SH * kb) / 2); c.scale(kb, kb); c.translate(-ROOM_OF[a.kind] * RW, 0); drawRoomN(c, ROOM_OF[a.kind], e.time); c.restore();
@@ -122,10 +124,10 @@ export class ActivityScene {
       else if (p.type === 'heart') heart(c, p.x, p.y, p.r, '#ff5c8a');
       else { c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.fillStyle = p.c; c.fillRect(-6, -4, 12, 8); c.restore(); } c.globalAlpha = 1; }
     // HUD: exit, prompt, progress, tool tray
-    pill(c, 56, 48, 64, 64, '#ff8fb7'); ln(c, [[42, 34], [70, 62]], '#fff', 7); ln(c, [[70, 34], [42, 62]], '#fff', 7);
+    { const X = V.xl + 56; pill(c, X, 104, 64, 64, '#ff8fb7'); ln(c, [[X - 14, 90], [X + 14, 118]], '#fff', 7); ln(c, [[X + 14, 90], [X - 14, 118]], '#fff', 7); }
     const s = a.steps[a.step];
-    if (!a.done && a.mode && a.mode.label) { pill(c, 500, 44, Math.min(900, 40 + a.mode.label.length * 15), 54); text(c, a.mode.label, 500, 45, 26); }
-    if (!a.done && s) { pill(c, 500, 44, Math.min(900, 40 + s.label.length * 15), 54); text(c, s.label, 500, 45, 26); }
+    if (!a.done && a.mode && a.mode.label) this.banner2(c, V, a.mode.label);
+    if (!a.done && s) this.banner2(c, V, s.label);
     a.steps.forEach((st, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120, cur = i === a.step && !a.done, done = i < a.step || a.done;
       c.save(); c.translate(tx, 500); el(c, 0, 0, 46, 46, done ? '#b9f0b0' : cur ? '#fffdf4' : 'rgba(255,255,255,.35)', INK, cur ? 6 : 4); if (cur) { c.strokeStyle = '#ffd93d'; c.lineWidth = 4; c.beginPath(); c.arc(0, 0, 54 + Math.sin(this.t * 6) * 3, 0, TAU); c.stroke(); }
       c.globalAlpha = done ? .45 : 1; drawToolIcon(c, st.tool, 0, 0, .9); c.globalAlpha = 1; if (done) { ln(c, [[-14, 0], [-4, 12], [18, -12]], '#2f9a3f', 7); } c.restore(); });

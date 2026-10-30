@@ -28,13 +28,13 @@ export class Engine {
     const c = this.ctx, s = this.scale * this.dpr;
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#2a1a33'; c.fillRect(0, 0, this.cv.width, this.cv.height);
     const sh = this.shake ? (Math.random() - .5) * this.shake : 0;
-    const oy = Math.max(0, (this.visH - this.designH) / 2); // letterbox: centre vertically on tall screens
-    c.setTransform(s, 0, 0, s, (-this.cam.x + sh) * s, (oy + sh) * s);
+    c.setTransform(s, 0, 0, s, (-this.cam.x + sh) * s, sh * s); // layers apply e.offY themselves (letterbox)
     for (const l of this.layers) { c.save(); l(c, this); c.restore(); }
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = .55; c.fillStyle = c.createPattern(this.grain, 'repeat'); c.fillRect(0, 0, this.W, this.H); c.restore();
   }
-  get offY() { return Math.max(0, (this.visH - this.designH) / 2); }
+  get baseOffY() { return Math.max(0, (this.visH - this.designH) / 2); }
+  get offY() { return this.baseOffY - (this.lift || 0); }
   // convert pointer (screen) coords to world, accounting for letterbox
   toWorld(px) { return { x: px.sx / this.scale + this.cam.x, y: px.sy / this.scale - this.offY }; }
 }
