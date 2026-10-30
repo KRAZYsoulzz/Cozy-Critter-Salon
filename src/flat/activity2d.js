@@ -4,7 +4,7 @@ import { MODES } from './modes2d.js';
 import { drawUpgrades } from './upgrades2d.js';
 import { drawPet } from './pets2d.js';
 import { sponge, shapeS } from './art.js';
-import { INK, el, ln, slab, towels, brush, comb, hairdryer, heart, star } from './props.js';
+import { INK, el, ln, slab, towels, brush, comb, hairdryer, heart, star, drawHand } from './props.js';
 const TAU = Math.PI * 2, SW = 1000, SH = 540;
 export const ROOM_OF = { spa: 1, kitchen: 0, vet: 3, yard: 4, lobby: 2 };
 
@@ -38,17 +38,17 @@ export class ActivityScene {
   map(p) { const e = this.w.e, S = this.view().S; return { x: (p.sx - (e.W - SW * S) / 2) / S, y: (p.sy - (e.H - SH * S) / 2) / S, S }; }
   enter(kind) {
     const pid = this.w.save.state.activePet, st = this.w.save.state.pets[pid]; this.parts = [];
-    this.active = { kind, pid, steps: kind === 'spa' ? SPA_STEPS : [], step: 0, done: false, spots: SPOTS.map(s => ({ x: s[0], y: s[1], r: s[2], hp: 1 })), foam: [], wet: 0, shine: 0, stroke: 0, rubbed: 0, reaction: 0, t0: this.t, exitBtn: false };
+    this.active = { kind, pid, steps: kind === 'spa' ? SPA_STEPS : [], step: 0, done: false, spots: SPOTS.map(s => ({ x: s[0], y: s[1], r: s[2], hp: 1 })), foam: [], wet: 0, shine: 0, stroke: 0, rubbed: 0, reaction: 0, t0: this.t, exitBtn: false, lastInput: this.t, startStat: st.stats[{ spa: 'cleanliness', kitchen: 'hunger', vet: 'health', yard: 'love' }[kind]] ?? 0 };
     if (MODES[kind]) this.active.mode = MODES[kind](this, this.active); else { this.active.tool = this.active.steps[0].tool; this.say(this.active.steps[0].voice, this.active.steps[0].label); }
     document.getElementById('prompt')?.classList.remove('on'); this.audio.sound?.playBubblePop?.(); this.w.av.has = false; this.w.holding = null;
   }
   exit(quiet) { const was = this.active; this.active = null; this.ptr = null; if (was && !quiet) this.hooks?.exit?.(); }
   say(id, text) { try { this.audio.voice?.speak(id, text); } catch (e) { /* voice optional */ } }
   pointer(kind, p) {
-    const a = this.active; if (!a) return; const m = this.map(p), pt = { x: m.x, y: m.y };
+    const a = this.active; if (!a) return; const m = this.map(p), pt = { x: m.x, y: m.y }; a.lastInput = this.t; if (kind === 'down') this.isDown = true; else if (kind === 'up') this.isDown = false;
     if (kind === 'down') {
       if (Math.hypot(pt.x - (this.view().xl + 56), pt.y - 104) < 44) { this.exit(); return; }
-      if (a.done) { if (Math.abs(pt.x - 500) < 150 && Math.abs(pt.y - 380) < 40) this.exit(); return; }
+      if (a.done) { if (Math.abs(pt.x - 500) < 150 && Math.abs(pt.y - 450) < 44 && this.t - (a.doneAt ?? 0) > .8) this.exit(); return; }
       if (a.mode) { a.mode.pointer('down', pt); return; }
       a.steps.forEach((s, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120; if (Math.hypot(pt.x - tx, pt.y - 500) < 52 && i <= a.step) a.tool = s.tool; });
       this.ptr = { ...pt, down: true, lx: pt.x, ly: pt.y }; return;
@@ -72,17 +72,36 @@ export class ActivityScene {
   finish() {
     const a = this.active, sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.step = a.steps.length;
     st.stats.cleanliness = 100; st.stats.love = Math.min(100, st.stats.love + 8); st.dirtSpots = []; st.teethSparkly = true;
-    const before = sv.state.routinesCompleted || 0; sv.addReward(15, 1); if ((sv.state.routinesCompleted || 0) === before) sv.state.routinesCompleted = before + 1; sv.save();
+    this.award(a, 8, 45);
     this.hooks?.reward?.();
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
     this.audio.sound?.playFanfare?.(); this.say('spa_complete', 'All sparkly clean!');
   }
   banner2(c, V, label) { const w = Math.min(V.vw - 24, 40 + label.length * 15), sz = Math.min(26, (w - 36) / (label.length * .5)); pill(c, 500, 44, w, 54); text(c, label, 500, 45, sz); }
+  // One reward path for every task: 1-3 stars from speed (or catch rate), coins scale with stars, half coins if the pet was already happy.
+  award(a, base, par, quality) {
+    const sv = this.w.save, el2 = this.t - a.t0, stars = quality ?? (el2 < par ? 3 : el2 < par * 2 ? 2 : 1), happy = (a.startStat || 0) >= 88, coins = Math.round((base + 5 * stars) * (happy ? .5 : 1));
+    a.result = { stars, coins, happy }; a.doneAt = this.t; a.starsShown = 0; sv.addReward(coins, 1);
+    const tg = this.map({ sx: 70, sy: 26 }); for (let i = 0; i < Math.min(12, 4 + coins / 4); i++) this.parts.push({ type: 'coin', x: 500, y: 330, vx: 0, vy: 0, sx: 500 + (Math.random() - .5) * 120, sy: 330, tx: tg.x, ty: tg.y, dl: 1.5 + i * .07, age: 0, life: 1.5 + i * .07 + .85 });
+  }
+  hint(a) {
+    if (a.mode) return a.mode.hint ? a.mode.hint() : null;
+    const s = a.steps[a.step]; if (!s) return null; const n = a.steps.length, tx = 500 + (a.step - (n - 1) / 2) * 120; if (a.tool !== s.tool) return { tap: [tx, 500] };
+    let t = [500, 390]; if (s.id === 'scrub') { const sp = a.spots.find(q => q.hp > 0); if (sp) t = [500 + sp.x * .8, 488 + sp.y * .8]; } else if (s.id === 'rinse') { const f = a.foam.find(q => q.a > 0); if (f) t = [500 + f.x * .8, 488 + f.y * .8]; }
+    return { drag: [[t[0] - 45, t[1] + 12], [t[0] + 45, t[1] - 12]] };
+  }
+  drawHint(c, a) {
+    if (a.done || this.t - a.lastInput < 3.5) return; const h = this.hint(a); if (!h) return; const k = (this.t * .8) % 1;
+    if (h.tap) { const [x, y] = h.tap, d = Math.sin(this.t * 6) * 8; c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 5; c.beginPath(); c.arc(x, y, 40 + (k * 22), 0, Math.PI * 2); c.globalAlpha = 1 - k; c.stroke(); c.globalAlpha = 1; drawHand(c, x + 6, y + 6 + d, 1); return; }
+    const [f, t2] = h.drag, u = k < .15 ? 0 : k > .8 ? 1 : (k - .15) / .65, e = u * u * (3 - 2 * u), al = k < .15 ? k / .15 : k > .85 ? (1 - k) / .15 : 1;
+    c.globalAlpha = .5; c.setLineDash([10, 10]); c.strokeStyle = '#fff'; c.lineWidth = 5; c.beginPath(); c.moveTo(f[0], f[1]); c.lineTo(t2[0], t2[1]); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+    drawHand(c, f[0] + (t2[0] - f[0]) * e + 6, f[1] + (t2[1] - f[1]) * e + 6, 1, al);
+  }
   finishMode(a, o) {
     if (this.active !== a || a.done) return; const sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.doneText = o.text;
     for (const k in (o.stats || {})) st.stats[k] = k === 'love' ? Math.min(100, (st.stats.love || 0) + o.stats[k]) : o.stats[k];
     if (o.energy) st.stats.energy = Math.max(0, (st.stats.energy ?? 100) + o.energy); if (o.cure) { st.ailments = []; st.health = 100; }
-    const before = sv.state.routinesCompleted || 0; sv.addReward(o.coins, 1); if ((sv.state.routinesCompleted || 0) === before) sv.state.routinesCompleted = before + 1; sv.save();
+    this.award(a, Math.max(5, Math.round(o.coins * .55)), o.par || 40, o.quality);
     this.hooks?.reward?.();
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
     this.audio.sound?.playFanfare?.(); this.say(o.voice, o.text);
@@ -90,8 +109,8 @@ export class ActivityScene {
   sud(x, y) { if (Math.random() < .6) this.parts.push({ type: 'bub', x: x + (Math.random() - .5) * 40, y: y + (Math.random() - .5) * 30, vx: (Math.random() - .5) * 20, vy: -30 - Math.random() * 30, life: 1.2, r: 6 + Math.random() * 10 }); }
   drops(x, y, n) { for (let i = 0; i < n; i++) this.parts.push({ type: 'drop', x: x + (Math.random() - .5) * 50, y, vx: (Math.random() - .5) * 30, vy: 200 + Math.random() * 100, life: .7 }); }
   spark(x, y) { this.parts.push({ type: 'star', x: x + (Math.random() - .5) * 60, y: y + (Math.random() - .5) * 40, vx: (Math.random() - .5) * 40, vy: -40, life: .9, r: 8 + Math.random() * 8 }); }
-  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; if (a.mode && !a.done) a.mode.update(dt); a.reaction = Math.max(0, a.reaction - dt);
-    for (const p of this.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'conf') { p.vy += 40 * dt; p.rot += dt * 6; } }
+  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; if (this.isDown) a.lastInput = this.t; if (a.mode && !a.done) a.mode.update(dt); a.reaction = Math.max(0, a.reaction - dt);
+    for (const p of this.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'conf') { p.vy += 40 * dt; p.rot += dt * 6; } if (p.type === 'coin') { p.age += dt; const u = Math.max(0, Math.min(1, (p.age - p.dl) / .8)), k = u * u * (3 - 2 * u); p.x = p.sx + (p.tx - p.sx) * k; p.y = p.sy + (p.ty - p.sy) * k - Math.sin(u * Math.PI) * 60; } }
     this.parts = this.parts.filter(p => p.life > 0); }
   draw(c, e) {
     const a = this.active; if (!a) return; const V = this.view(), S = V.S, ox = (e.W - SW * S) / 2, oy = (e.H - SH * S) / 2, dpr = e.dpr;
@@ -122,6 +141,7 @@ export class ActivityScene {
       if (p.type === 'bub') { el(c, p.x, p.y, p.r, p.r, 'rgba(255,255,255,.9)', INK, 2.5); el(c, p.x - p.r * .3, p.y - p.r * .3, p.r * .25, p.r * .3, 'rgba(160,210,255,.9)'); }
       else if (p.type === 'drop') el(c, p.x, p.y, 3.4, 6, 'rgba(120,200,255,.95)');
       else if (p.type === 'star') star(c, p.x, p.y, p.r, '#fff6a0');
+      else if (p.type === 'coin') { if (p.age >= p.dl) { el(c, p.x, p.y, 15, 15, '#ffd93d', INK, 3); el(c, p.x - 4, p.y - 4, 4, 5, 'rgba(255,255,255,.75)'); } }
       else if (p.type === 'heart') heart(c, p.x, p.y, p.r, '#ff5c8a');
       else { c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.fillStyle = p.c; c.fillRect(-6, -4, 12, 8); c.restore(); } c.globalAlpha = 1; }
     // HUD: exit, prompt, progress, tool tray
@@ -132,7 +152,13 @@ export class ActivityScene {
     a.steps.forEach((st, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120, cur = i === a.step && !a.done, done = i < a.step || a.done;
       c.save(); c.translate(tx, 500); el(c, 0, 0, 46, 46, done ? '#b9f0b0' : cur ? '#fffdf4' : 'rgba(255,255,255,.35)', INK, cur ? 6 : 4); if (cur) { c.strokeStyle = '#ffd93d'; c.lineWidth = 4; c.beginPath(); c.arc(0, 0, 54 + Math.sin(this.t * 6) * 3, 0, TAU); c.stroke(); }
       c.globalAlpha = done ? .45 : 1; drawToolIcon(c, st.tool, 0, 0, .9); c.globalAlpha = 1; if (done) { ln(c, [[-14, 0], [-4, 12], [18, -12]], '#2f9a3f', 7); } c.restore(); });
-    if (a.done) { pill(c, 500, 150, 520, 80, '#fffdf4'); text(c, a.doneText || 'All sparkly clean!  +15', 500, 150, 38, '#ff5c8a'); pill(c, 500, 380, 300, 70, '#7ed957'); text(c, 'Yay!', 500, 380, 34, '#fff'); }
+    this.drawHint(c, a);
+    if (a.done) { const R = a.result || { stars: 3, coins: 0 }, k = this.t - (a.doneAt ?? this.t), tt = (a.doneText || 'All sparkly clean!').replace(/\s*\+\d+\s*$/, '');
+      pill(c, 500, 120, Math.min(V.vw - 20, 560), 74, '#fffdf4'); text(c, tt, 500, 120, Math.min(36, (V.vw - 80) / (tt.length * .5)), '#ff5c8a');
+      for (let i = 0; i < 3; i++) { const t0 = .35 + i * .35, u = Math.max(0, Math.min(1, (k - t0) / .3)); if (u > 0 && a.starsShown <= i) { a.starsShown = i + 1; this.audio.sound?.playMarimbaNote?.(); if (i < R.stars) for (let j = 0; j < 8; j++) this.spark(500 + (i - 1) * 100, 250); }
+        const sc2 = u ? 1 + Math.sin(u * Math.PI) * .4 : 0, on = i < R.stars; if (u) { c.save(); c.translate(500 + (i - 1) * 100, 250); c.scale(sc2, sc2); star(c, 0, 0, 46, on ? '#ffd93d' : '#d9d2e6'); c.restore(); } }
+      if (k > 1.6) { const u = Math.min(1, (k - 1.6) / .3); c.save(); c.translate(500, 340); c.scale(1 + Math.sin(u * Math.PI) * .2, 1 + Math.sin(u * Math.PI) * .2); el(c, -60, 0, 17, 17, '#ffd93d', INK, 3.5); text(c, '+' + R.coins, 20, 2, 44, '#fff7d6'); c.restore(); if (R.happy) text(c, 'Already happy - half coins', 500, 392, 20, '#ffe9f1'); }
+      pill(c, 500, 450, 300, 66, '#7ed957'); text(c, 'Yay!', 500, 450, 34, '#fff'); }
     // held tool at pointer
     if (this.ptr && !a.done) drawToolIcon(c, a.tool, this.ptr.x + 18, this.ptr.y - 14, 1.1, -.5 + Math.sin(this.t * 14) * .12);
   }

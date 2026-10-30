@@ -84,3 +84,6 @@ export function plant(c, x, y, s, pot = '#b04c8f', leaf = '#3f9a5b', leaf2 = '#4
     shapeS(c, [[0, -44], [lx / 2 - 22 * sg, (-44 + ly) / 2 - 10], [lx, ly], [lx / 2 + 18 * sg, (-44 + ly) / 2 - 2]], { fill: i % 2 ? leaf : leaf2, shade: 'rgba(20,80,40,.35)', lw: 4, wob: 2, seed: 20 + i, shadeDx: -4, shadeDy: -4 }); }
   shapeS(c, [[-38, -48], [38, -48], [30, 0], [-30, 0]], { fill: pot, shade: 'rgba(60,10,50,.3)', lw: 5, seed: 31, wob: 2, shadeDx: -8, shadeDy: -4 }); slab(c, -42, -56, 84, 12, { fill: pot, shade: 'rgba(60,10,50,.3)', r: 5, lw: 4.5 }); c.restore(); }
 export function framePic(c, x, y, w, h, draw) { slab(c, x, y, w, h, { fill: '#fff8ea', r: 6, lw: 4.5 }); slab(c, x + 8, y + 8, w - 16, h - 16, { fill: '#cfeaf7', r: 3, lw: 2.5 }); c.save(); c.beginPath(); c.rect(x + 9, y + 9, w - 18, h - 18); c.clip(); draw?.(c, x + 9, y + 9, w - 18, h - 18); c.restore(); }
+
+// Cartoon pointing hand (tip at x,y) used for idle hints / onboarding.
+export function drawHand(c, x, y, s = 1, a = 1) { c.save(); c.globalAlpha *= a; c.translate(x, y); c.scale(s, s); el(c, 6, 54, 28, 24, '#ffe3c8', INK, 4.5); el(c, -24, 46, 10, 15, '#ffe3c8', INK, 4); slab(c, -11, 0, 24, 60, { fill: '#ffe3c8', shade: '#f2c29c', r: 12, lw: 4.5 }); slab(c, -22, 72, 56, 20, { fill: '#ff8fb7', shade: '#e0608f', r: 9, lw: 4 }); c.restore(); }

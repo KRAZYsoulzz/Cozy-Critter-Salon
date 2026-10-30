@@ -36,10 +36,10 @@ function counter(c, label) { slab(c, 40, 462, 920, 100, { fill: '#c98a54', shade
 
 // ---------------- KITCHEN ----------------
 export function kitchenMode(sc, a) {
-  const fav = FAV[a.pid]; a.fed = 0; a.need = 3; a.food = null; a.chew = 0; a.eaten = []; a.tmsg = 0; a.favHit = false;
+  const fav = FAV[a.pid]; a.fav = fav; a.fed = 0; a.need = 3; a.food = null; a.chew = 0; a.eaten = []; a.tmsg = 0; a.favHit = false;
   const slot = i => ({ x: 500 + (i - 2) * 112, y: 500 });
   sc.say('kitchen_intro', 'Time to eat! Drag food to the mouth!');
-  return { label: `Feed me! I really love ${FOOD_NAME[fav]}!`,
+  return { hint() { const id = !a.eaten.includes(fav) ? fav : FOODS.find(f => !a.eaten.includes(f)); if (!id || a.food) return null; const s = slot(FOODS.indexOf(id)); return { drag: [[s.x, s.y - 6], [500, 380]] }; }, label: `Feed me! I really love ${FOOD_NAME[fav]}!`,
     pointer(k, pt) {
       if (k === 'down') FOODS.forEach((id, i) => { const s = slot(i); if (!a.eaten.includes(id) && dist(pt.x, pt.y, s.x, s.y) < 56) a.food = { id, x: pt.x, y: pt.y }; });
       else if (k === 'move' && a.food) { a.food.x = pt.x; a.food.y = pt.y; }
@@ -48,7 +48,7 @@ export function kitchenMode(sc, a) {
     eat(id) { a.fed++; a.chew = 1.1; a.eaten.push(id); const st = sc.w.save.state.pets[a.pid].stats; const isFav = id === fav; st.hunger = Math.min(100, st.hunger + (isFav ? 35 : 22)); st.love = Math.min(100, st.love + (isFav ? 8 : 3));
       sc.audio.sound?.playMarimbaNote?.(); for (let i = 0; i < (isFav ? 9 : 4); i++) sc.parts.push({ type: 'heart', x: 500 + (Math.random() - .5) * 120, y: 230, vx: (Math.random() - .5) * 60, vy: -80 - Math.random() * 60, life: 1.3, r: 9 + Math.random() * 6 });
       if (isFav && !a.favHit) { a.favHit = true; sc.say('kitchen_fav', 'My favorite!!'); }
-      if (a.fed >= a.need) setTimeout(() => sc.finishMode(a, { coins: 12 + (a.favHit ? 6 : 0), text: 'Tummy full!  +' + (12 + (a.favHit ? 6 : 0)), voice: 'kitchen_complete', stats: { hunger: 100 } }), 900); },
+      if (a.fed >= a.need) setTimeout(() => sc.finishMode(a, { coins: 12 + (a.favHit ? 6 : 0), text: 'Tummy full!  +' + (12 + (a.favHit ? 6 : 0)), voice: 'kitchen_complete', par: 30, stats: { hunger: 100 } }), 900); },
     update(dt) { a.chew = Math.max(0, a.chew - dt); },
     draw(c) { const ch = a.chew > 0 ? Math.sin(sc.t * 22) * .05 : 0; petAt(c, sc, a, 500, 470, .8, a.chew > 0 || a.done ? 'happy' : 'idle', { sy: 1 + ch, sx: 1 - ch * .6 });
       counter(c); FOODS.forEach((id, i) => { const s = slot(i); if (a.eaten.includes(id)) return; el(c, s.x, s.y + 12, 46, 14, 'rgba(60,30,10,.25)'); drawFood(c, id, s.x, s.y - 4, 1.05); if (id === fav) { star(c, s.x + 32, s.y - 30, 11 + Math.sin(sc.t * 5) * 2, '#fff6a0'); } });
@@ -68,9 +68,10 @@ const VET_STEPS = [
 export function vetMode(sc, a) {
   a.vstep = 0; a.vprog = 0; a.pill = null; a.thorn = true; a.band = false; a.reading = null; a.beat = 0; a.reactT = 0; let ptr = null;
   const S = () => VET_STEPS[a.vstep], P = () => { const q = S().at; return { x: 500 + q[0] * .8, y: 488 + q[1] * .8 }; };
-  const adv = () => { a.vprog = 0; a.vstep++; sc.audio.sound?.playMarimbaNote?.(); if (a.vstep >= VET_STEPS.length) return setTimeout(() => sc.finishMode(a, { coins: 20, text: 'All better!  +20', voice: 'vet_complete', stats: { health: 100 }, cure: true }), 700); sc.say(S().voice, S().label); };
+  const adv = () => { a.vprog = 0; a.vstep++; sc.audio.sound?.playMarimbaNote?.(); if (a.vstep >= VET_STEPS.length) return setTimeout(() => sc.finishMode(a, { coins: 20, text: 'All better!  +20', voice: 'vet_complete', par: 55, stats: { health: 100 }, cure: true }), 700); sc.say(S().voice, S().label); };
   sc.say(VET_STEPS[0].voice, VET_STEPS[0].label);
   const m = {
+  hint() { if (a.vstep >= VET_STEPS.length) return null; const p = P(), s = S(); return s.type === 'tap' ? { tap: [p.x, p.y] } : { drag: [[500 + (a.vstep - 2) * 120, 500], [p.x, p.y]] }; },
     get label() { return a.vstep < VET_STEPS.length ? S().label : ''; },
     pointer(k, pt) {
       if (a.vstep >= VET_STEPS.length) return; const s = S(), p = P();
@@ -98,13 +99,13 @@ export function vetMode(sc, a) {
 export function yardMode(sc, a) {
   a.px = 500; a.tx = 500; a.treats = []; a.spawned = 0; a.caught = 0; a.total = 12; a.spawnT = .6; a.hopT = 0; a.missT = 0; let down = false;
   sc.say('yard_minigame_start', 'Catch the treats!');
-  return { label: 'Slide to catch the falling treats!',
+  return { hint() { return { drag: [[a.px - 90, 430], [a.px + 90, 430]] }; }, label: 'Slide to catch the falling treats!',
     pointer(k, pt) { if (k === 'down') { down = true; a.tx = pt.x; } else if (k === 'move' && down) a.tx = pt.x; else if (k === 'up') down = false; },
     update(dt) { if (a.done) return; a.px += (a.tx - a.px) * Math.min(1, dt * 10); a.px = Math.max(290, Math.min(710, a.px)); a.hopT = Math.max(0, a.hopT - dt);
       a.spawnT -= dt; if (a.spawnT <= 0 && a.spawned < a.total) { a.spawned++; a.spawnT = .85 + Math.random() * .4; a.treats.push({ id: FOODS[Math.floor(Math.random() * 5)], x: 290 + Math.random() * 420, y: -30, vy: 190 + a.spawned * 6, rot: 0, sp: (Math.random() - .5) * 4 }); }
       for (const t of a.treats) { t.y += t.vy * dt; t.rot += t.sp * dt; if (Math.abs(t.x - a.px) < 80 && t.y > 330 && t.y < 470 && !t.got) { t.got = true; a.caught++; a.hopT = .35; sc.audio.sound?.playMarimbaNote?.(); for (let i = 0; i < 4; i++) sc.spark(t.x, t.y); } }
       a.treats = a.treats.filter(t => !t.got && t.y < 580);
-      if (a.spawned >= a.total && !a.treats.length && !a.finishing) { a.finishing = true; const co = 4 + a.caught * 2; sc.finishMode(a, { coins: co, text: `Caught ${a.caught} of ${a.total}!  +${co}`, voice: 'yard_minigame_complete', stats: { love: 10 }, energy: -8 }); } },
+      if (a.spawned >= a.total && !a.treats.length && !a.finishing) { a.finishing = true; const co = 4 + a.caught * 2; sc.finishMode(a, { coins: co, text: `Caught ${a.caught} of ${a.total}!  +${co}`, voice: 'yard_minigame_complete', quality: a.caught / a.total >= .75 ? 3 : a.caught / a.total >= .4 ? 2 : 1, stats: { love: 10 }, energy: -8 }); } },
     draw(c) { 
       for (const t of a.treats) { el(c, t.x, t.y + 34, 20, 6, 'rgba(0,0,0,.18)'); drawFood(c, t.id, t.x, t.y, 1.1, t.rot); }
       const hop = a.hopT > 0 ? Math.sin(a.hopT / .35 * Math.PI) * 30 : 0; petAt(c, sc, a, a.px, 500 - hop, .56, a.hopT > 0 || a.done ? 'happy' : 'idle');

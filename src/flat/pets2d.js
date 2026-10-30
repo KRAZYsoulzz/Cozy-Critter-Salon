@@ -1,6 +1,6 @@
 ﻿// Pets: dik-dik art, cosmetics for every shop item, and the follower/home-room behaviour with need bubbles.
 import { shapeS, eye, drawCapybara, drawAxolotl, drawBubble, strawberry, sponge } from './art.js';
-import { INK, el, ln, slab, shadow, heart, star } from './props.js';
+import { INK, el, ln, slab, shadow, heart, star , drawHand } from './props.js';
 import { RW, STATIONS, WALK_Y0, WALK_Y1 } from './rooms.js';
 
 const TAU = Math.PI * 2;
@@ -107,7 +107,7 @@ export class PetManager {
   draw(c, o) { const p = this.state(o.id), s = this.scaleAt(o.y) * .5, hop = Math.abs(Math.sin(this.t * 10)) * 6 * o.moving;
     c.save(); c.translate(o.x, o.y - hop); c.scale(s * o.face * (o.id === 'axolotl' ? 1 : 1), s); drawPet(c, o.id, this.t, this.mood(o), o.blink > 0 ? 0 : 1, this.override[o.id] || p.equipped, p.stats); c.restore(); }
   bubbleAt(o) { return { x: o.x + 10, y: o.y - 300 * this.scaleAt(o.y) * .5 - 90 }; }
-  drawBubbles(c, e) { c.translate(0, e.offY); for (const o of Object.values(this.pets)) { const n = petNeed(this.state(o.id)); if (!n || o.x < e.cam.x - 80 || o.x > e.cam.x + e.visW + 80) continue; const b = this.bubbleAt(o), bob = Math.sin(this.t * 2.2 + o.x) * 4; drawBubble(c, b.x - 8, b.y + bob - 30, .8, ICONS[n.icon]); } }
+  drawBubbles(c, e) { c.translate(0, e.offY); for (const o of Object.values(this.pets)) { const n = petNeed(this.state(o.id)); if (!n || o.x < e.cam.x - 80 || o.x > e.cam.x + e.visW + 80) continue; const b = this.bubbleAt(o), bob = Math.sin(this.t * 2.2 + o.x) * 4; drawBubble(c, b.x - 8, b.y + bob - 30, .8, ICONS[n.icon]); if (!(this.w.save.state.routinesCompleted > 0) && o.id === this.w.save.state.activePet) drawHand(c, b.x - 2, b.y + bob + 18 + Math.sin(this.t * 6) * 6, .8); } }
   pick(w) {
     for (const o of Object.values(this.pets)) { const n = petNeed(this.state(o.id)), b = this.bubbleAt(o);
       if (n && Math.hypot(w.x - b.x, w.y - (b.y)) < 62) { const st = STATIONS.find(s => s.id === n.station); this.w.walkTo(st.room * RW + st.x, st.y); return true; }
