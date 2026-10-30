@@ -31,6 +31,7 @@ export class CozyCritterApp {
     this.activeActivity = null;
     this.activeStation = null;
     this.isPointerDown = false;
+    this.followFinger = false;
     this.joystickVec = { x: 0, y: 0 };
     this.clock = { _t: performance.now(), elapsedTime: 0, getDelta() { const n = performance.now(); const d = (n - this._t) / 1000; this._t = n; this.elapsedTime += d; return d; } };
     this.titleAngle = 0;
@@ -534,18 +535,10 @@ export class CozyCritterApp {
           }
         }
 
-        // Intersect ground plane to walk there
-        const hitPoint = new THREE.Vector3();
-        if (this.raycaster.ray.intersectPlane(this.groundPlane, hitPoint)) {
-          const clamped = this.world.clampPosition(hitPoint.x, hitPoint.z);
-          this.avatar.setTarget(clamped.x, clamped.z);
-          this.world.showWalkIndicator(clamped.x, clamped.z);
-          this.save.state.playerPosition = {
-            room: this.world.getRoomAt(clamped.x, clamped.z),
-            x: clamped.x,
-            z: clamped.z
-          };
-        }
+        // Follow-finger: hold to walk toward the finger, release to stop
+        this.followFinger = true;
+        this._followT0 = performance.now();
+        this.steerToPointer(true);
       } else if (this.mode === 'activity' && this.activeActivity) {
         this.handleActivityPointer();
       }
@@ -557,17 +550,36 @@ export class CozyCritterApp {
       updateNDC(e);
       if (this.mode === 'activity' && this.activeActivity) {
         this.handleActivityPointer();
+      } else if (this.mode === 'world' && this.followFinger) {
+        this.steerToPointer(false);
       }
     });
 
     const endPointer = () => {
       this.isPointerDown = false;
+      if (this.followFinger) {
+        this.followFinger = false;
+        // stop where she is when the finger lifts
+        if (this.mode === 'world' && performance.now() - this._followT0 > 260) this.avatar.setTarget(this.avatar.root.position.x, this.avatar.root.position.z);
+      }
       if (this.activeActivity) {
         this.activeActivity.onPointerUp();
       }
     };
     window.addEventListener('pointerup', endPointer);
     window.addEventListener('pointercancel', endPointer);
+  }
+
+  /** Point the avatar at the ground under the held finger (world mode). */
+  steerToPointer(first) {
+    const hitPoint = this._steerTmp || (this._steerTmp = new THREE.Vector3());
+    if (!this.raycaster.ray.intersectPlane(this.groundPlane, hitPoint)) return;
+    const clamped = this.world.clampPosition(hitPoint.x, hitPoint.z);
+    this.avatar.setTarget(clamped.x, clamped.z);
+    this._steerPt = clamped;
+    const now = performance.now();
+    if (first || now - (this._lastWalkInd || 0) > 350) { this._lastWalkInd = now; this.world.showWalkIndicator(clamped.x, clamped.z); }
+    this.save.state.playerPosition = { room: this.world.getRoomAt(clamped.x, clamped.z), x: this.avatar.root.position.x, z: this.avatar.root.position.z };
   }
 
   handleActivityPointer() {
