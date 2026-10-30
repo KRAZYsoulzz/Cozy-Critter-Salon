@@ -1,7 +1,7 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+﻿<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Flat art preview</title><style>html,body{margin:0;height:100%;background:#222;overflow:hidden}canvas{width:100vw;height:100vh;display:block}</style></head>
 <body><canvas id="c"></canvas><script type="module">
-import { drawRoom, drawRug, drawCapybara, drawAxolotl, drawBubble, strawberry, sponge } from './flat/art.js';
+import { drawRoom, drawRug, drawCapybara, drawAxolotl, drawBubble, strawberry, sponge } from './src/flat/art.js';
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 const q = new URLSearchParams(location.search), exprA = q.get('a') || 'idle', exprB = q.get('b') || 'happy', freeze = q.get('t');
 function grain(W, H) { const g = document.createElement('canvas'); g.width = 256; g.height = 256; const x = g.getContext('2d'), d = x.createImageData(256, 256);
@@ -27,3 +27,4 @@ function frame(ms) {
 }
 requestAnimationFrame(frame); window.__ready = true;
 </script></body></html>
+
