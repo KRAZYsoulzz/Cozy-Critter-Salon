@@ -1,5 +1,6 @@
 // Close-up activity scenes on a 1000x540 stage over a dimmed room backdrop. Spa is first; others register the same way.
 import { drawRoomN, RW } from './rooms.js';
+import { MODES } from './modes2d.js';
 import { drawPet } from './pets2d.js';
 import { sponge, shapeS } from './art.js';
 import { INK, el, ln, slab, towels, brush, comb, hairdryer, heart, star } from './props.js';
@@ -34,9 +35,9 @@ export class ActivityScene {
   }
   map(p) { const e = this.w.e, S = Math.min(e.W / SW, e.H / SH); return { x: (p.sx - (e.W - SW * S) / 2) / S, y: (p.sy - (e.H - SH * S) / 2) / S, S }; }
   enter(kind) {
-    const pid = this.w.save.state.activePet, st = this.w.save.state.pets[pid];
+    const pid = this.w.save.state.activePet, st = this.w.save.state.pets[pid]; this.parts = [];
     this.active = { kind, pid, steps: kind === 'spa' ? SPA_STEPS : [], step: 0, done: false, spots: SPOTS.map(s => ({ x: s[0], y: s[1], r: s[2], hp: 1 })), foam: [], wet: 0, shine: 0, stroke: 0, rubbed: 0, reaction: 0, t0: this.t, exitBtn: false };
-    this.active.tool = this.active.steps[0].tool; this.say(this.active.steps[0].voice, this.active.steps[0].label);
+    if (MODES[kind]) this.active.mode = MODES[kind](this, this.active); else { this.active.tool = this.active.steps[0].tool; this.say(this.active.steps[0].voice, this.active.steps[0].label); }
     document.getElementById('prompt')?.classList.remove('on'); this.audio.sound?.playBubblePop?.(); this.w.av.has = false; this.w.holding = null;
   }
   exit() { this.active = null; this.ptr = null; document.getElementById('prompt')?.classList.remove('on'); }
@@ -46,9 +47,11 @@ export class ActivityScene {
     if (kind === 'down') {
       if (Math.hypot(pt.x - 56, pt.y - 48) < 40) { this.exit(); return; }
       if (a.done) { if (Math.abs(pt.x - 500) < 150 && Math.abs(pt.y - 380) < 40) this.exit(); return; }
+      if (a.mode) { a.mode.pointer('down', pt); return; }
       a.steps.forEach((s, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120; if (Math.hypot(pt.x - tx, pt.y - 500) < 52 && i <= a.step) a.tool = s.tool; });
       this.ptr = { ...pt, down: true, lx: pt.x, ly: pt.y }; return;
     }
+    if (a.mode) { if (!a.done) a.mode.pointer(kind, pt); return; }
     if (!this.ptr) return;
     if (kind === 'move') { const d = Math.hypot(pt.x - this.ptr.x, pt.y - this.ptr.y); this.ptr.lx = this.ptr.x; this.ptr.ly = this.ptr.y; this.ptr.x = pt.x; this.ptr.y = pt.y; if (d > 0 && !a.done) this.work(pt, d); }
     if (kind === 'up') this.ptr = null;
@@ -72,10 +75,19 @@ export class ActivityScene {
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
     this.audio.sound?.playFanfare?.(); this.say('spa_complete', 'All sparkly clean!');
   }
+  finishMode(a, o) {
+    if (this.active !== a || a.done) return; const sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.doneText = o.text;
+    for (const k in (o.stats || {})) st.stats[k] = k === 'love' ? Math.min(100, (st.stats.love || 0) + o.stats[k]) : o.stats[k];
+    if (o.energy) st.stats.energy = Math.max(0, (st.stats.energy ?? 100) + o.energy); if (o.cure) { st.ailments = []; st.health = 100; }
+    const before = sv.state.routinesCompleted || 0; sv.addReward(o.coins, 1); if ((sv.state.routinesCompleted || 0) === before) sv.state.routinesCompleted = before + 1; sv.save();
+    document.getElementById('coin-n') && (document.getElementById('coin-n').textContent = sv.state.coins);
+    for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
+    this.audio.sound?.playFanfare?.(); this.say(o.voice, o.text);
+  }
   sud(x, y) { if (Math.random() < .6) this.parts.push({ type: 'bub', x: x + (Math.random() - .5) * 40, y: y + (Math.random() - .5) * 30, vx: (Math.random() - .5) * 20, vy: -30 - Math.random() * 30, life: 1.2, r: 6 + Math.random() * 10 }); }
   drops(x, y, n) { for (let i = 0; i < n; i++) this.parts.push({ type: 'drop', x: x + (Math.random() - .5) * 50, y, vx: (Math.random() - .5) * 30, vy: 200 + Math.random() * 100, life: .7 }); }
   spark(x, y) { this.parts.push({ type: 'star', x: x + (Math.random() - .5) * 60, y: y + (Math.random() - .5) * 40, vx: (Math.random() - .5) * 40, vy: -40, life: .9, r: 8 + Math.random() * 8 }); }
-  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; a.reaction = Math.max(0, a.reaction - dt);
+  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; if (a.mode && !a.done) a.mode.update(dt); a.reaction = Math.max(0, a.reaction - dt);
     for (const p of this.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'conf') { p.vy += 40 * dt; p.rot += dt * 6; } }
     this.parts = this.parts.filter(p => p.life > 0); }
   draw(c, e) {
@@ -87,8 +99,9 @@ export class ActivityScene {
     const vg = c.createRadialGradient(e.W / 2, e.H / 2, Math.min(e.W, e.H) * .3, e.W / 2, e.H / 2, Math.max(e.W, e.H) * .72); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,0,30,.6)'); c.fillStyle = vg; c.fillRect(0, 0, e.W, e.H);
     c.translate(ox, oy); c.scale(S, S);
     const pet = this.pets.pets[a.pid], ps = this.w.save.state.pets[a.pid];
+    if (a.mode) a.mode.draw(c, e);
     // pet + task visuals
-    c.save(); c.translate(500, 488); c.scale(.8, .8);
+    if (!a.mode) { c.save(); c.translate(500, 488); c.scale(.8, .8);
     const expr = a.done ? 'happy' : a.reaction > 0 ? 'happy' : a.step === 0 ? 'sad' : 'idle';
     drawPet(c, a.pid, this.t, expr, 1, ps.equipped, { ...ps.stats, cleanliness: 100 });
     if (a.kind === 'spa') {
@@ -98,7 +111,7 @@ export class ActivityScene {
       if (a.wet > 0) for (let i = 0; i < 9; i++) { const x = ((i * 53) % 220) - 110, y = -60 - ((i * 77) % 300), dy = (this.t * 30 + i * 20) % 26; el(c, x, y + dy, 5, 7, 'rgba(120,200,255,.85)', null, 0); }
       if (a.shine > 0) for (let i = 0; i < Math.floor(a.shine * 6); i++) { const x = ((i * 67) % 240) - 120, y = -80 - ((i * 91) % 280); star(c, x, y, 9 + Math.sin(this.t * 6 + i) * 3, '#fff6a0'); }
     }
-    c.restore();
+    c.restore(); }
     // tub front covers pet's feet
     if (a.kind === 'spa') { shapeS(c, [[130, 470], [870, 470], [850, 548], [150, 548]], { fill: '#fff6f8', shade: '#f1c9dc', lw: 6, wob: 2, seed: 6, shadeDx: -8, shadeDy: -8 }); slab(c, 120, 452, 760, 26, { fill: '#ff9fc7', shade: '#e0608f', r: 13, lw: 5 }); for (const [x, y, r] of [[170, 450, 26], [240, 440, 22], [330, 452, 20], [680, 448, 24], [770, 440, 28], [840, 454, 20], [600, 456, 16]]) { el(c, x, y, r, r, '#fff', INK, 3.5); el(c, x - r * .3, y - r * .3, r * .2, r * .28, 'rgba(160,210,255,.9)', null, 0, .5); } }
     // particles
@@ -106,15 +119,17 @@ export class ActivityScene {
       if (p.type === 'bub') { el(c, p.x, p.y, p.r, p.r, 'rgba(255,255,255,.9)', INK, 2.5); el(c, p.x - p.r * .3, p.y - p.r * .3, p.r * .25, p.r * .3, 'rgba(160,210,255,.9)'); }
       else if (p.type === 'drop') el(c, p.x, p.y, 3.4, 6, 'rgba(120,200,255,.95)');
       else if (p.type === 'star') star(c, p.x, p.y, p.r, '#fff6a0');
+      else if (p.type === 'heart') heart(c, p.x, p.y, p.r, '#ff5c8a');
       else { c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.fillStyle = p.c; c.fillRect(-6, -4, 12, 8); c.restore(); } c.globalAlpha = 1; }
     // HUD: exit, prompt, progress, tool tray
     pill(c, 56, 48, 64, 64, '#ff8fb7'); ln(c, [[42, 34], [70, 62]], '#fff', 7); ln(c, [[70, 34], [42, 62]], '#fff', 7);
     const s = a.steps[a.step];
+    if (!a.done && a.mode && a.mode.label) { pill(c, 500, 44, Math.min(900, 40 + a.mode.label.length * 15), 54); text(c, a.mode.label, 500, 45, 26); }
     if (!a.done && s) { pill(c, 500, 44, Math.min(900, 40 + s.label.length * 15), 54); text(c, s.label, 500, 45, 26); }
     a.steps.forEach((st, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120, cur = i === a.step && !a.done, done = i < a.step || a.done;
       c.save(); c.translate(tx, 500); el(c, 0, 0, 46, 46, done ? '#b9f0b0' : cur ? '#fffdf4' : 'rgba(255,255,255,.35)', INK, cur ? 6 : 4); if (cur) { c.strokeStyle = '#ffd93d'; c.lineWidth = 4; c.beginPath(); c.arc(0, 0, 54 + Math.sin(this.t * 6) * 3, 0, TAU); c.stroke(); }
       c.globalAlpha = done ? .45 : 1; drawToolIcon(c, st.tool, 0, 0, .9); c.globalAlpha = 1; if (done) { ln(c, [[-14, 0], [-4, 12], [18, -12]], '#2f9a3f', 7); } c.restore(); });
-    if (a.done) { pill(c, 500, 150, 520, 80, '#fffdf4'); text(c, 'All sparkly clean!  +15', 500, 150, 38, '#ff5c8a'); pill(c, 500, 380, 300, 70, '#7ed957'); text(c, 'Yay!', 500, 380, 34, '#fff'); }
+    if (a.done) { pill(c, 500, 150, 520, 80, '#fffdf4'); text(c, a.doneText || 'All sparkly clean!  +15', 500, 150, 38, '#ff5c8a'); pill(c, 500, 380, 300, 70, '#7ed957'); text(c, 'Yay!', 500, 380, 34, '#fff'); }
     // held tool at pointer
     if (this.ptr && !a.done) drawToolIcon(c, a.tool, this.ptr.x + 18, this.ptr.y - 14, 1.1, -.5 + Math.sin(this.t * 14) * .12);
   }

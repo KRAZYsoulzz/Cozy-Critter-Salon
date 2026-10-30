@@ -13,6 +13,6 @@ let scene; const world = new World2D(engine, save, { station: (s, first) => {
 const pets = new PetManager(world);
 scene = new ActivityScene(world, pets, { sound, voice });
 document.getElementById('coin-n').textContent = save.state.coins;
-prompt.addEventListener('pointerdown', e => { e.stopPropagation(); const s = world.station; if (!s) return; window.dispatchEvent(new CustomEvent('station', { detail: s })); if (s.id === 'spa') scene.enter('spa'); });
+prompt.addEventListener('pointerdown', e => { e.stopPropagation(); const s = world.station; if (!s) return; window.dispatchEvent(new CustomEvent('station', { detail: s })); if (['spa', 'kitchen', 'vet', 'yard'].includes(s.id)) scene.enter(s.id); });
 addEventListener('pointerdown', () => sound.resume?.(), { once: true });
 window.flat = { engine, world, save, pets, scene, sound, voice }; window.__ready = true;
