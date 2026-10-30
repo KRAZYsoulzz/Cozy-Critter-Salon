@@ -1,7 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 // Cozy Critter Salon & Spa - 3D Kitchen & Cafe Activity (activities/kitchen.js)
 // ============================================================================
 import * as THREE from 'three';
+import { disposeTree } from '../gfx.js';
 import { toonMat } from '../gfx.js';
 import { KITCHEN_FOODS, buildFoodMesh } from '../shop-data.js';
 
@@ -36,7 +37,7 @@ export class KitchenActivity {
 
     this.app.ui.setActivityPrompt(
       'kitchen_intro',
-      `Drag yummy snacks to ${petState.customName}'s mouth! Look for the ★ favorite treat!`
+      `Drag yummy snacks to ${petState.customName}'s mouth! Look for the â˜… favorite treat!`
     );
     this.app.ui.updateActivityProgress(0);
     this.renderFoodDock();
@@ -55,7 +56,7 @@ export class KitchenActivity {
     const items = KITCHEN_FOODS.map((f, fi) => ({
       lockAt: (f.favoriteOf === this.petState.id || fi < KITCHEN_FOODS.length - 3) ? 0 : (fi === KITCHEN_FOODS.length - 1 ? 6 : 3),
       id: f.id,
-      label: f.favoriteOf === this.petState.id ? `★ ${f.name}` : f.name,
+      label: f.favoriteOf === this.petState.id ? `â˜… ${f.name}` : f.name,
       icon: f.id,
       color: `#${f.color.toString(16).padStart(6, '0')}`,
       isFavorite: f.favoriteOf === this.petState.id,
@@ -68,7 +69,7 @@ export class KitchenActivity {
 
   selectFood(foodId, speakName = true) {
     this.activeFoodId = foodId;
-    this.heldFoodGroup.clear();
+    disposeTree(this.heldFoodGroup); this.heldFoodGroup.clear();
     const mesh = buildFoodMesh(foodId);
     mesh.scale.setScalar(1.25);
     this.heldFoodGroup.add(mesh);
@@ -198,7 +199,7 @@ export class KitchenActivity {
   }
 
   clearParticles() {
-    for (const p of this.particles) this.fxGroup.remove(p);
+    for (const p of this.particles) { this.fxGroup.remove(p); disposeTree(p); }
     this.particles = [];
   }
 
@@ -221,7 +222,7 @@ export class KitchenActivity {
       const p = this.particles[i];
       p.userData.life -= dt;
       if (p.userData.life <= 0) {
-        this.fxGroup.remove(p);
+        this.fxGroup.remove(p); disposeTree(p);
         this.particles.splice(i, 1);
       } else {
         p.userData.vy -= 3.2 * dt;

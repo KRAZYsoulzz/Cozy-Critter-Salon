@@ -1,7 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 // Cozy Critter Salon & Spa - 3D Vet Clinic Activity (activities/vet.js)
 // ============================================================================
 import * as THREE from 'three';
+import { disposeTree } from '../gfx.js';
 import { toonMat } from '../gfx.js';
 
 export class VetActivity {
@@ -140,7 +141,7 @@ export class VetActivity {
   }
 
   build3DToolMesh(toolId) {
-    this.toolMesh.clear();
+    disposeTree(this.toolMesh); this.toolMesh.clear();
     this.toolMesh.visible = false;
 
     if (toolId === 'stethoscope') {
@@ -255,7 +256,7 @@ export class VetActivity {
   }
 
   clearParticles() {
-    for (const p of this.particles) this.fxGroup.remove(p);
+    for (const p of this.particles) { this.fxGroup.remove(p); disposeTree(p); }
     this.particles = [];
   }
 
@@ -269,7 +270,7 @@ export class VetActivity {
       const p = this.particles[i];
       p.userData.life -= dt;
       if (p.userData.life <= 0) {
-        this.fxGroup.remove(p);
+        this.fxGroup.remove(p); disposeTree(p);
         this.particles.splice(i, 1);
       } else {
         p.position.y += p.userData.vy * dt;

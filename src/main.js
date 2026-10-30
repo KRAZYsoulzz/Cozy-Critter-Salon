@@ -2,10 +2,6 @@
 // Cozy Critter Salon & Spa - Main 3D Engine & Game Orchestrator (main.js)
 // ============================================================================
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import { tickWind, addContactShadow } from './gfx.js';
 import { SaveManager } from './save.js';
@@ -73,7 +69,9 @@ export class CozyCritterApp {
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.gfxTier = 0;
+    this.maxPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.renderer.setPixelRatio(this.maxPR);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -111,7 +109,7 @@ export class CozyCritterApp {
     this.sunLight = new THREE.DirectionalLight(0xffe6bd, 2.2);
     this.sunLight.position.set(-9, 24, 18);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.set(1536, 1536);
+    this.sunLight.shadow.mapSize.set(1024, 1024);
     this.sunLight.shadow.camera.near = 2;
     this.sunLight.shadow.camera.far = 55;
     const d = 16;
@@ -123,6 +121,7 @@ export class CozyCritterApp {
     this.scene.add(this.sunLight);
 
     // Warm interior room glow lights
+    this.pointLights = [];
     const roomLightCoords = [
       [0, 3.2, 2.0, 0xfff0f6],
       [-7.2, 3.2, 2.0, 0xe3fafc],
@@ -133,25 +132,10 @@ export class CozyCritterApp {
       const pl = new THREE.PointLight(col, 0.55, 10, 1.2);
       pl.position.set(x, y, z);
       this.scene.add(pl);
+      this.pointLights.push(pl);
     });
 
-    // Post-processing Composer with Gentle Bloom
-    {
-      const pr = Math.min(window.devicePixelRatio || 1, 2);
-      const rt = new THREE.WebGLRenderTarget(window.innerWidth * pr, window.innerHeight * pr, { type: THREE.HalfFloatType, samples: 4 });
-      this.composer = new EffectComposer(this.renderer, rt);
-      this.composer.setPixelRatio(pr);
-      this.composer.setSize(window.innerWidth, window.innerHeight);
-    }
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.05, // barely-there glow: crisp, not soft
-      0.2,
-      0.96
-    );
-    this.composer.addPass(this.bloomPass);
-    this.composer.addPass(new OutputPass());
+    // No post-processing (bloom/composer removed for speed): straight render, adaptive pixel ratio.
 
     this.applyGraphicsSettings();
 
@@ -161,16 +145,37 @@ export class CozyCritterApp {
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(w, h);
-      this.composer.setSize(w, h);
     });
   }
 
   applyGraphicsSettings() {
     const low = Boolean(this.save.state.settings.lowGraphics);
-    this.renderer.shadowMap.enabled = !low;
-    this.renderer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio || 1, 2));
-    if (this.composer) { this.composer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio || 1, 2)); this.composer.setSize(window.innerWidth, window.innerHeight); }
-    if (this.bloomPass) this.bloomPass.enabled = !low;
+    this.applyTier(low ? Math.max(2, this.gfxTier) : this.gfxTier);
+  }
+
+  /** Quality tiers: 0 = pr<=1.5 + shadows, 1 = pr 1, 2 = no shadows/point lights, 3 = pr 0.75. */
+  applyTier(t) {
+    this.gfxTier = t;
+    const pr = t >= 3 ? 0.75 : t >= 1 ? Math.min(1, this.maxPR) : this.maxPR;
+    this.renderer.setPixelRatio(pr);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    const wasShadow = this.renderer.shadowMap.enabled;
+    this.renderer.shadowMap.enabled = t < 2;
+    if (this.sunLight) this.sunLight.castShadow = t < 2;
+    if (this.pointLights) this.pointLights.forEach(p => { p.visible = t < 2; });
+    if (wasShadow !== this.renderer.shadowMap.enabled || t === 2) this.scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { m.needsUpdate = true; }); });
+  }
+
+  /** Adaptive quality: if the average frame time stays over ~20ms, drop a tier (never climbs back). */
+  monitorPerf(rawDt) {
+    if (document.hidden) { this._pf = 0; this._pn = 0; return; }
+    this._pf = (this._pf || 0) + rawDt; this._pn = (this._pn || 0) + 1;
+    if (this._pn >= 40 || this._pf >= 1.2) {
+      const avg = this._pf / this._pn; this._pf = 0; this._pn = 0;
+      this._pw = (this._pw || 0) + 1;
+      if (this._pw < 2) return; // ignore the first window (shader compile hitch)
+      if (avg > 0.02 && this.gfxTier < 3) this.applyTier(Math.min(3, this.gfxTier + (avg > 0.07 ? 2 : 1)));
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -634,6 +639,7 @@ export class CozyCritterApp {
   animate() {
     requestAnimationFrame(this.animate);
     const rawDt = Math.min(0.1, this.clock.getDelta());
+    this.monitorPerf(rawDt);
     const dt = Math.min(0.05, rawDt);
     const elapsed = this.clock.elapsedTime;
 
@@ -749,11 +755,7 @@ export class CozyCritterApp {
   }
 
   renderFrame() {
-    if (this.save.state.settings.lowGraphics) {
-      this.renderer.render(this.scene, this.camera);
-    } else {
-      this.composer.render();
-    }
+    this.renderer.render(this.scene, this.camera);
   }
 }
 

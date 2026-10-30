@@ -40,7 +40,8 @@ export function initSpark(app) {
   };
   const tick = (now) => {
     if (app.mode !== lastMode) { lastMode = app.mode; bump(); }
-    const modalOpen = document.querySelector('.center-modal:not(.hidden), .modal-overlay:not(.hidden)');
+    if (now - (window.__mq || 0) > 250) { window.__mq = now; window.__mo = document.querySelector('.center-modal:not(.hidden), .modal-overlay:not(.hidden)'); }
+    const modalOpen = window.__mo;
     const show = app.mode === 'activity' && !modalOpen && now - lastAct > 4800;
     hand.classList.toggle('on', !!show);
     if (show) {

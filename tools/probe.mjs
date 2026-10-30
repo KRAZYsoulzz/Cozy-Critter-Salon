@@ -21,10 +21,10 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
-const chrome = fs.existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe') ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-gl=angle','--ignore-gpu-blocklist','--autoplay-policy=no-user-gesture-required','--mute-audio'] });
+const chrome = process.env.EDGE ? 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' : fs.existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe') ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const browser = await chromium.launch({ executablePath: chrome, headless: !process.env.HEADED, args: process.env.HEADED ? ['--ignore-gpu-blocklist','--autoplay-policy=no-user-gesture-required','--mute-audio','--window-size=1300,900','--window-position=0,0', ...(process.env.SOFT ? ['--disable-gpu','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] : [])] : ['--use-gl=angle','--ignore-gpu-blocklist','--autoplay-policy=no-user-gesture-required','--mute-audio'] });
 const vp = (process.env.VP || '1280x800').split('x').map(Number);
-const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] }, deviceScaleFactor: 1 });
+const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] }, deviceScaleFactor: +(process.env.DSF||1) });
 const page = await ctx.newPage();
 await page.addInitScript(() => { const noop = () => {}; const stub = { speak: noop, cancel: noop, pause: noop, resume: noop, getVoices: () => [], speaking: false, pending: false, paused: false, onvoiceschanged: null, addEventListener: noop, removeEventListener: noop }; try { Object.defineProperty(window, 'speechSynthesis', { value: stub, configurable: true }); } catch (e) {} window.SpeechSynthesisUtterance = function () {}; HTMLMediaElement.prototype.play = function () { return Promise.resolve(); }; });
 const errors = [], warns = [], failed = [];
@@ -48,6 +48,9 @@ await browser.close(); server.close();
 console.log('ERRORS:', errors.length, JSON.stringify(errors.slice(0, 10)));
 console.log('WARNS:', warns.length);
 process.exit(0);
+
+
+
 
 
 

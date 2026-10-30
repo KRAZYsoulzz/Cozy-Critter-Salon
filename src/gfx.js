@@ -429,3 +429,6 @@ export function addContactShadow(root, rx = 0.55, rz = 0.5) {
   m.rotation.x = -Math.PI / 2; m.position.y = 0.025; m.scale.set(rx, rz, 1); m.renderOrder = 2; m.userData.isContactShadow = true;
   root.add(m); return m;
 }
+
+/** Frees GPU geometry of a removed object tree (particles/props were leaking one buffer each). */
+export function disposeTree(o) { if (!o) return; o.traverse(c => { if (c.geometry && c.geometry.dispose) c.geometry.dispose(); }); }

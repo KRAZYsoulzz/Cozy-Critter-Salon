@@ -1,4 +1,4 @@
-/* ============================================================================
+﻿/* ============================================================================
    Cozy Critter Salon & Spa - Tactile Toy Box UI Styles (styles.css)
    ============================================================================ */
 * {
@@ -57,7 +57,7 @@ button:active {
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at center, rgba(255, 240, 246, 0.35), rgba(74, 37, 69, 0.35));
-  backdrop-filter: blur(3px);
+  backdrop-filter: none;
 }
 
 .title-card {
@@ -544,7 +544,7 @@ button:active {
   inset: 0;
   z-index: 40;
   background: rgba(65, 25, 55, 0.42);
-  backdrop-filter: blur(3px);
+  backdrop-filter: none;
   display: flex;
   align-items: center;
   justify-content: center;

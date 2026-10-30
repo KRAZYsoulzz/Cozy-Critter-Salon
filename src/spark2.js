@@ -80,7 +80,8 @@ export function initSpark2(app) {
       dim.position.set(p.x, p.y + 0.5, p.z).addScaledVector(dir, 1.25);
       dim.quaternion.copy(app.camera.quaternion);
     } else dim.visible = false;
-    const modalOpen = document.querySelector('.center-modal:not(.hidden), .modal-overlay:not(.hidden)');
+    if (now - (window.__mq || 0) > 250) { window.__mq = now; window.__mo = document.querySelector('.center-modal:not(.hidden), .modal-overlay:not(.hidden)'); }
+    const modalOpen = window.__mo;
     const want = act && !modalOpen && (now - enteredAt < 5200 || now - lastAct > 4800);
     hints.classList.toggle('on', !!want);
     if (act) {
@@ -205,10 +206,7 @@ export function initSpark2(app) {
     if (r !== lastRoutines) { if ((r >= 3 && lastRoutines < 3) || (r >= 6 && lastRoutines < 6)) say('New sparkle snacks unlocked in the Kitchen!'); lastRoutines = r; }
   }, 700);
 
-  // ---- hand-drawn feel: wobbly UI edge filter + paper grain ----
-  const svg = document.createElement('div');
-  svg.innerHTML = '<svg width="0" height="0" style="position:absolute"><filter id="rough" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.4" xChannelSelector="R" yChannelSelector="G"/></filter></svg>';
-  document.body.appendChild(svg.firstChild);
+  // ---- hand-drawn feel: static tiled paper grain (no SVG filters) ----
   const gc = document.createElement('canvas'); gc.width = gc.height = 128; const gg = gc.getContext('2d'); const id = gg.createImageData(128, 128);
   for (let i = 0; i < id.data.length; i += 4) { const dk = Math.random() < 0.5; id.data[i] = id.data[i + 1] = id.data[i + 2] = dk ? 40 : 255; id.data[i + 3] = Math.random() * (dk ? 26 : 22); }
   gg.putImageData(id, 0, 0);

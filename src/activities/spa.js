@@ -1,7 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 // Cozy Critter Salon & Spa - 3D Spa & Grooming Activity (activities/spa.js)
 // ============================================================================
 import * as THREE from 'three';
+import { disposeTree } from '../gfx.js';
 import { toonMat } from '../gfx.js';
 
 export class SpaActivity {
@@ -127,7 +128,7 @@ export class SpaActivity {
   }
 
   build3DToolMesh(toolId) {
-    this.toolMesh.clear();
+    disposeTree(this.toolMesh); this.toolMesh.clear();
     this.toolMesh.visible = false;
 
     if (toolId === 'soap') {
@@ -249,7 +250,7 @@ export class SpaActivity {
 
   clearParticles() {
     for (const p of this.particles) {
-      this.fxGroup.remove(p);
+      this.fxGroup.remove(p); disposeTree(p);
     }
     this.particles = [];
   }
@@ -264,7 +265,7 @@ export class SpaActivity {
       const p = this.particles[i];
       p.userData.life -= dt;
       if (p.userData.life <= 0) {
-        this.fxGroup.remove(p);
+        this.fxGroup.remove(p); disposeTree(p);
         this.particles.splice(i, 1);
       } else {
         p.position.x += p.userData.vx * dt;

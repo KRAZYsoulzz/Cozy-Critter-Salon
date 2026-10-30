@@ -1,7 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 // Cozy Critter Salon & Spa - 3D Lobby Cuddle & Heart Brush (activities/lobby.js)
 // ============================================================================
 import * as THREE from 'three';
+import { disposeTree } from '../gfx.js';
 import { toonMat } from '../gfx.js';
 
 export class LobbyActivity {
@@ -53,7 +54,7 @@ export class LobbyActivity {
   }
 
   build3DToolMesh(toolId) {
-    this.toolMesh.clear();
+    disposeTree(this.toolMesh); this.toolMesh.clear();
     this.toolMesh.visible = false;
     const mat = toonMat(toolId === 'heartBrush' ? 0xff4d8d : 0xffadd2);
     const pad = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), mat);
@@ -140,7 +141,7 @@ export class LobbyActivity {
   }
 
   clearParticles() {
-    for (const p of this.particles) this.fxGroup.remove(p);
+    for (const p of this.particles) { this.fxGroup.remove(p); disposeTree(p); }
     this.particles = [];
   }
 
@@ -157,7 +158,7 @@ export class LobbyActivity {
       const p = this.particles[i];
       p.userData.life -= dt;
       if (p.userData.life <= 0) {
-        this.fxGroup.remove(p);
+        this.fxGroup.remove(p); disposeTree(p);
         this.particles.splice(i, 1);
       } else {
         p.position.x += p.userData.vx * dt;

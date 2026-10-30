@@ -1,7 +1,8 @@
-// ============================================================================
+﻿// ============================================================================
 // Cozy Critter Salon & Spa - 3D Play Yard & Catch Treats Mini-Game (yard.js)
 // ============================================================================
 import * as THREE from 'three';
+import { disposeTree } from '../gfx.js';
 import { toonMat } from '../gfx.js';
 
 export class YardActivity {
@@ -71,7 +72,7 @@ export class YardActivity {
   }
 
   build3DToolMesh(toolId) {
-    this.toolMesh.clear();
+    disposeTree(this.toolMesh); this.toolMesh.clear();
     this.toolMesh.visible = false;
 
     if (toolId === 'ball') {
@@ -107,7 +108,7 @@ export class YardActivity {
   updateScoreHud() {
     if (!this.scoreEl) return;
     const t = Math.max(0, Math.ceil(this.minigameTimer));
-    const txt = `Treats: ${Math.min(this.minigameScore, 8)} / 8  ♥`;
+    const txt = `Treats: ${Math.min(this.minigameScore, 8)} / 8  â™¥`;
     if (this.scoreEl.textContent !== txt) this.scoreEl.textContent = txt;
   }
 
@@ -237,12 +238,12 @@ export class YardActivity {
   }
 
   clearFallingItems() {
-    for (const item of this.fallingItems) this.fxGroup.remove(item);
+    for (const item of this.fallingItems) { this.fxGroup.remove(item); disposeTree(item); }
     this.fallingItems = [];
   }
 
   clearParticles() {
-    for (const p of this.particles) this.fxGroup.remove(p);
+    for (const p of this.particles) { this.fxGroup.remove(p); disposeTree(p); }
     this.particles = [];
   }
 
@@ -284,7 +285,7 @@ export class YardActivity {
       const p = this.particles[i];
       p.userData.life -= dt;
       if (p.userData.life <= 0) {
-        this.fxGroup.remove(p);
+        this.fxGroup.remove(p); disposeTree(p);
         this.particles.splice(i, 1);
       } else {
         p.position.y += p.userData.vy * dt;
@@ -339,13 +340,13 @@ export class YardActivity {
           this.app.popText(item.position, t === 'coin' ? '+1 coin!' : '+1 yum!', t === 'coin' ? '#d98e00' : '#ff4d8d');
           for (let k = 0; k < 6; k++) this.spawnBubble(item.position);
         }
-        this.fxGroup.remove(item);
+        this.fxGroup.remove(item); disposeTree(item);
         this.fallingItems.splice(i, 1);
         continue;
       }
 
       if (item.position.y < this.pet.root.position.y - 0.1) {
-        this.fxGroup.remove(item);
+        this.fxGroup.remove(item); disposeTree(item);
         this.fallingItems.splice(i, 1);
       }
     }
