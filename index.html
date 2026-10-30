@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff85c0" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Cozy Critter Salon &amp; Spa</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="preload" href="./vendor/fonts/Fredoka.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="alternate icon" href="./favicon.ico" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./polish.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/": "./vendor/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Fullscreen 3D Diorama Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- Boot splash (shown instantly while the 3D engine loads) -->
+  <div id="boot" class="boot-splash">
+    <div class="boot-logo">﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+<radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#ffd6ec"/><stop offset="0.55" stop-color="#ff9fd0"/><stop offset="1" stop-color="#f0609f"/></radialGradient>
+<radialGradient id="fur" cx="45%" cy="35%" r="75%"><stop offset="0" stop-color="#d49a5e"/><stop offset="1" stop-color="#a86d38"/></radialGradient>
+<radialGradient id="org" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#ffc247"/><stop offset="1" stop-color="#ff8a1c"/></radialGradient>
+</defs>
+<rect width="512" height="512" fill="url(#bg)"/>
+<g opacity=".55" fill="#fff"><circle cx="70" cy="90" r="9"/><circle cx="440" cy="130" r="6"/><circle cx="410" cy="440" r="8"/><circle cx="85" cy="410" r="5"/></g>
+<g fill="#fff"><path d="M110 150l9 22 22 9-22 9-9 22-9-22-22-9 22-9z"/><path d="M405 205l7 17 17 7-17 7-7 17-7-17-17-7 17-7z" opacity=".9"/></g>
+<ellipse cx="256" cy="452" rx="150" ry="22" fill="#b83d7d" opacity=".25"/>
+<g stroke="#6b3a1e" stroke-width="10" stroke-linejoin="round">
+<ellipse cx="136" cy="212" rx="40" ry="44" fill="#a0652f"/><ellipse cx="376" cy="212" rx="40" ry="44" fill="#a0652f"/>
+<ellipse cx="256" cy="304" rx="176" ry="138" fill="url(#fur)"/>
+</g>
+<ellipse cx="136" cy="214" rx="20" ry="24" fill="#ff9db8"/><ellipse cx="376" cy="214" rx="20" ry="24" fill="#ff9db8"/>
+<ellipse cx="256" cy="346" rx="92" ry="64" fill="#efc596" stroke="#6b3a1e" stroke-width="8"/>
+<ellipse cx="256" cy="322" rx="30" ry="20" fill="#4a2616"/>
+<ellipse cx="248" cy="316" rx="9" ry="5" fill="#fff" opacity=".6"/>
+<path d="M256 342v18M226 376q30 26 60 0" fill="none" stroke="#4a2616" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<g><ellipse cx="190" cy="282" rx="30" ry="36" fill="#2a1710"/><ellipse cx="322" cy="282" rx="30" ry="36" fill="#2a1710"/>
+<circle cx="200" cy="268" r="12" fill="#fff"/><circle cx="332" cy="268" r="12" fill="#fff"/><circle cx="182" cy="296" r="6" fill="#fff"/><circle cx="314" cy="296" r="6" fill="#fff"/></g>
+<ellipse cx="136" cy="338" rx="28" ry="17" fill="#ff7ea1" opacity=".75"/><ellipse cx="376" cy="338" rx="28" ry="17" fill="#ff7ea1" opacity=".75"/>
+<g stroke="#a14a00" stroke-width="9" stroke-linejoin="round"><ellipse cx="256" cy="146" rx="52" ry="46" fill="url(#org)"/><ellipse cx="256" cy="108" rx="38" ry="32" fill="url(#org)"/></g>
+<path d="M258 80q4-34 38-40q0 36-38 40z" fill="#5cc45c" stroke="#2f7d32" stroke-width="7" stroke-linejoin="round"/>
+<ellipse cx="238" cy="96" rx="9" ry="6" fill="#fff" opacity=".7"/>
+</svg>
+</div>
+    <div class="boot-name">Cozy Critter<span>Salon &amp; Spa</span></div>
+    <div class="boot-bar"><i></i></div>
+  </div>
+  <div id="wipe" class="wipe" aria-hidden="true"></div>
+  <div id="confetti" class="confetti-layer" aria-hidden="true"></div>
+
+  <!-- Title Screen Overlay -->
+  <section id="title-screen" class="title-overlay">
+    <div class="title-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="title-logo">
+      <div class="title-mark">﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+<radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#ffd6ec"/><stop offset="0.55" stop-color="#ff9fd0"/><stop offset="1" stop-color="#f0609f"/></radialGradient>
+<radialGradient id="fur" cx="45%" cy="35%" r="75%"><stop offset="0" stop-color="#d49a5e"/><stop offset="1" stop-color="#a86d38"/></radialGradient>
+<radialGradient id="org" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#ffc247"/><stop offset="1" stop-color="#ff8a1c"/></radialGradient>
+</defs>
+<rect width="512" height="512" fill="url(#bg)"/>
+<g opacity=".55" fill="#fff"><circle cx="70" cy="90" r="9"/><circle cx="440" cy="130" r="6"/><circle cx="410" cy="440" r="8"/><circle cx="85" cy="410" r="5"/></g>
+<g fill="#fff"><path d="M110 150l9 22 22 9-22 9-9 22-9-22-22-9 22-9z"/><path d="M405 205l7 17 17 7-17 7-7 17-7-17-17-7 17-7z" opacity=".9"/></g>
+<ellipse cx="256" cy="452" rx="150" ry="22" fill="#b83d7d" opacity=".25"/>
+<g stroke="#6b3a1e" stroke-width="10" stroke-linejoin="round">
+<ellipse cx="136" cy="212" rx="40" ry="44" fill="#a0652f"/><ellipse cx="376" cy="212" rx="40" ry="44" fill="#a0652f"/>
+<ellipse cx="256" cy="304" rx="176" ry="138" fill="url(#fur)"/>
+</g>
+<ellipse cx="136" cy="214" rx="20" ry="24" fill="#ff9db8"/><ellipse cx="376" cy="214" rx="20" ry="24" fill="#ff9db8"/>
+<ellipse cx="256" cy="346" rx="92" ry="64" fill="#efc596" stroke="#6b3a1e" stroke-width="8"/>
+<ellipse cx="256" cy="322" rx="30" ry="20" fill="#4a2616"/>
+<ellipse cx="248" cy="316" rx="9" ry="5" fill="#fff" opacity=".6"/>
+<path d="M256 342v18M226 376q30 26 60 0" fill="none" stroke="#4a2616" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<g><ellipse cx="190" cy="282" rx="30" ry="36" fill="#2a1710"/><ellipse cx="322" cy="282" rx="30" ry="36" fill="#2a1710"/>
+<circle cx="200" cy="268" r="12" fill="#fff"/><circle cx="332" cy="268" r="12" fill="#fff"/><circle cx="182" cy="296" r="6" fill="#fff"/><circle cx="314" cy="296" r="6" fill="#fff"/></g>
+<ellipse cx="136" cy="338" rx="28" ry="17" fill="#ff7ea1" opacity=".75"/><ellipse cx="376" cy="338" rx="28" ry="17" fill="#ff7ea1" opacity=".75"/>
+<g stroke="#a14a00" stroke-width="9" stroke-linejoin="round"><ellipse cx="256" cy="146" rx="52" ry="46" fill="url(#org)"/><ellipse cx="256" cy="108" rx="38" ry="32" fill="url(#org)"/></g>
+<path d="M258 80q4-34 38-40q0 36-38 40z" fill="#5cc45c" stroke="#2f7d32" stroke-width="7" stroke-linejoin="round"/>
+<ellipse cx="238" cy="96" rx="9" ry="6" fill="#fff" opacity=".7"/>
+</svg>
+</div>
+      <h1 class="title-heading"><span class="t1">Cozy Critter</span><span class="t2">Salon &amp; Spa</span></h1>
+    </div>
+    <button id="btn-play-game" class="play-hero-btn">
+      <span id="icon-play-btn"></span>
+      <span>PLAY!</span>
+    </button>
+    <div class="title-foot">Made with love for Lilah</div>
+  </section>
+
+  <!-- Top HUD Bar -->
+  <header id="hud-top" class="hud-top hidden">
+    <div class="hud-left-cluster">
+      <div class="stat-pill coin-pill">
+        <span id="icon-coin-hud" class="stat-icon"></span>
+        <span id="coin-count">120</span>
+      </div>
+      <div class="stat-pill star-pill">
+        <span id="icon-star-hud" class="stat-icon"></span>
+        <span id="star-count">1</span>
+      </div>
+      <div class="room-banner-pill">
+        <span id="room-banner-icon" class="stat-icon"></span>
+        <span id="room-banner-text">Lobby &amp; Cuddle Sanctuary</span>
+      </div>
+    </div>
+
+    <!-- Pet Switcher in Top Center -->
+    <div id="pet-switcher" class="pet-switcher"></div>
+
+    <!-- Right Controls: Read-to-Me & 3s Hold Parent Gate -->
+    <div class="hud-right-cluster">
+      <button id="btn-read-toggle" class="icon-round-btn" title="Read to Me">
+        <span id="icon-read-toggle"></span>
+      </button>
+      <button id="btn-settings-gate" class="icon-round-btn gate-btn" title="Hold 3 Seconds for Parent Settings">
+        <span id="icon-settings-gear"></span>
+        <svg class="gate-ring-svg" viewBox="0 0 44 44">
+          <circle id="gate-progress-ring" class=" hidden" cx="22" cy="22" r="18" fill="none" stroke="#ff4d8d" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="113" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Interactive Read-Aloud Karaoke Speech Bubble -->
+  <div id="speech-bar" class="speech-bar hidden">
+    <button id="btn-replay-voice" class="replay-voice-btn" title="Read Aloud">
+      <span id="icon-replay-voice"></span>
+    </button>
+    <div id="speech-text" class="speech-text">
+      Welcome to Cozy Critter Salon &amp; Spa!
+    </div>
+  </div>
+
+  <!-- Optional Tablet On-Screen Joystick -->
+  <div id="joystick-zone" class="joystick-zone hidden">
+    <div id="joystick-knob" class="joystick-knob"></div>
+  </div>
+
+  <!-- World Mode Bottom Dock & Proximity Station Button -->
+  <footer id="world-hud-bottom" class="world-hud-bottom hidden">
+    <button id="btn-station-prompt" class="station-prompt-btn hidden">
+      <span id="station-prompt-icon" class="station-prompt-icon"></span>
+      <span id="station-prompt-label">Bubble Bath Spa</span>
+    </button>
+
+    <div class="world-action-strip">
+      <button class="world-nav-btn door door-spa" data-jump-station="spa"><span class="nav-ico" data-nav-icon="spa"></span><span class="nav-label">Spa</span></button>
+      <button class="world-nav-btn door door-vet" data-jump-station="vet"><span class="nav-ico" data-nav-icon="vet"></span><span class="nav-label">Vet</span></button>
+      <button class="world-nav-btn door door-kitchen" data-jump-station="kitchen"><span class="nav-ico" data-nav-icon="kitchen"></span><span class="nav-label">Kitchen</span></button>
+      <button class="world-nav-btn door door-lobby" data-jump-station="lobby"><span class="nav-ico" data-nav-icon="lobby"></span><span class="nav-label">Cuddles</span></button>
+      <button class="world-nav-btn door door-yard" data-jump-station="yard"><span class="nav-ico" data-nav-icon="yard"></span><span class="nav-label">Play Yard</span></button>
+
+    </div>
+
+    <div class="world-extras">
+      <button id="btn-call-pets" class="world-icon-btn" title="Call Critters"><span class="nav-ico" data-nav-icon="callPets"></span><span class="nav-label">Call</span></button>
+      <button id="btn-open-clipboard" class="world-icon-btn" title="Checkup Clipboard"><span class="nav-ico" data-nav-icon="clipboard"></span><span class="nav-label">Tasks</span></button>
+      <button id="btn-open-shop" class="world-icon-btn" title="Critter Boutique"><span class="nav-ico" data-nav-icon="shop"></span><span class="nav-label">Shop</span></button>
+      <button id="btn-open-photo" class="world-icon-btn" title="Sparkle Photo Booth"><span class="nav-ico" data-nav-icon="camera"></span><span class="nav-label">Photos</span></button>
+      <button id="btn-edit-avatar" class="world-icon-btn" title="Stylist Dress-Up"><span class="nav-ico" data-nav-icon="heartBrush"></span><span class="nav-label">Style</span></button>
+    </div>
+  </footer>
+
+  <!-- Back button (always top-left in every close-up, never over the meter) -->
+  <button id="btn-back-salon" class="back-salon-btn hidden">
+    <span id="icon-back-home"></span>
+    <span>Back</span>
+  </button>
+
+  <!-- Close-Up Activity HUD -->
+  <section id="activity-hud" class="activity-hud hidden">
+    <div class="activity-top-row">
+      <div class="activity-progress-track">
+        <div id="activity-progress-fill" class="activity-progress-fill"></div>
+      </div>
+    </div>
+    <div id="activity-tool-dock" class="activity-tool-dock"></div>
+  </section>
+
+  <!-- 1. Avatar Creator Side Panel (Live 3D Preview on Left) -->
+  <section id="avatar-modal" class="side-panel-modal hidden">
+    <div class="side-panel-card">
+      <div class="panel-header-row">
+        <h2>Create Your Stylist!</h2>
+        <button id="btn-avatar-surprise" class="surprise-btn">Surprise Me!</button>
+      </div>
+
+      <div class="creator-name-row">
+        <label class="field-label" for="avatar-name-input">Name</label>
+        <input id="avatar-name-input" class="friendly-input" type="text" maxlength="16" placeholder="Lilah" />
+      </div>
+
+      <div class="creator-tabs">
+        <button class="creator-tab" data-creator-tab="style">Hair</button>
+        <button class="creator-tab" data-creator-tab="color">Color</button>
+        <button class="creator-tab" data-creator-tab="skin">Skin</button>
+        <button class="creator-tab" data-creator-tab="outfit">Outfit</button>
+      </div>
+
+      <div class="creator-pages">
+        <div class="creator-page" data-creator-page="style"><div id="swatches-hair-style" class="pill-grid"></div></div>
+        <div class="creator-page hidden" data-creator-page="color"><div id="swatches-hair-color" class="swatch-row"></div></div>
+        <div class="creator-page hidden" data-creator-page="skin"><div id="swatches-skin" class="swatch-row"></div></div>
+        <div class="creator-page hidden" data-creator-page="outfit"><div id="swatches-outfit" class="pill-grid"></div></div>
+      </div>
+
+      <button id="btn-avatar-done" class="primary-cta-btn">Let's Go Play!</button>
+    </div>
+  </section>
+
+  <!-- 2. Pet Adoption & Naming Modal -->
+  <section id="pet-name-modal" class="center-modal hidden">
+    <div class="modal-card">
+      <div id="pet-modal-icon" class="pet-modal-icon"></div>
+      <h2 id="pet-modal-title">Meet Your New Critter!</h2>
+      <p id="pet-modal-desc" class="modal-desc"></p>
+
+      <div class="name-input-row">
+        <input id="pet-name-input" class="friendly-input" type="text" maxlength="18" />
+        <button id="btn-random-pet-name" class="dice-name-btn"></button>
+      </div>
+
+      <button id="btn-save-pet-name" class="primary-cta-btn">Adopt &amp; Love!</button>
+    </div>
+  </section>
+
+  <!-- 3. Check-Up Clipboard Modal -->
+  <section id="clipboard-modal" class="center-modal hidden">
+    <div class="modal-card clipboard-modal-card">
+      <div class="panel-header-row">
+        <h2>Critter Care Clipboard</h2>
+        <button id="btn-close-clipboard" class="close-x-btn" aria-label="Close">&#10005;</button>
+      </div>
+      <div id="clipboard-list" class="clipboard-list"></div>
+    </div>
+  </section>
+
+  <!-- 4. 3D Boutique Shop & Room Upgrades Side Panel -->
+  <section id="shop-modal" class="side-panel-modal hidden">
+    <div class="side-panel-card shop-panel-card">
+      <div class="panel-header-row">
+        <h2>Critter Boutique</h2>
+        <button id="btn-close-shop" class="close-x-btn">Back</button>
+      </div>
+
+      <div class="shop-tabs">
+        <button class="shop-tab-btn active" data-shop-tab="girly">Girly &amp; Glam</button>
+        <button class="shop-tab-btn" data-shop-tab="silly">Silly &amp; Goofy</button>
+        <button class="shop-tab-btn" data-shop-tab="upgrades">Room Upgrades</button>
+      </div>
+
+      <div id="shop-items-grid" class="shop-items-grid"></div>
+      <div id="shop-detail" class="shop-detail"></div>
+    </div>
+  </section>
+
+  <!-- 5. Sparkle Photo Booth Overlay -->
+  <section id="photo-modal" class="photo-booth-overlay hidden">
+    <div id="photo-frame-overlay" class="photo-frame-border" data-frame="hearts"></div>
+    <div id="photo-flash" class="photo-flash"></div>
+    <div id="photo-album-strip" class="photo-album-strip"></div>
+
+    <div class="photo-controls-bar">
+      <div class="frame-picker">
+        <button class="frame-btn" data-photo-frame="hearts">Hearts</button>
+        <button class="frame-btn" data-photo-frame="gold">Gold</button>
+        <button class="frame-btn" data-photo-frame="ocean">Ocean</button>
+        <button class="frame-btn" data-photo-frame="flowers">Daisy</button>
+      </div>
+      <button id="btn-pose-hop" class="surprise-btn">Pose!</button>
+      <button id="btn-snap-photo" class="snap-shutter-btn">Snap!</button>
+    </div>
+  </section>
+
+  <!-- 6. Celebration Reward Modal -->
+  <section id="reward-modal" class="center-modal hidden">
+    <div class="modal-card reward-card">
+      <h2>Sparkly Job!</h2>
+      <p id="reward-title-text" class="modal-desc"></p>
+      <div class="reward-badges-row">
+        <div id="reward-coins-text" class="reward-badge coin-reward"></div>
+        <div id="reward-stars-text" class="reward-badge star-reward"></div>
+      </div>
+      <button id="btn-reward-continue" class="primary-cta-btn">Hooray!</button>
+    </div>
+  </section>
+
+  <!-- 7. Parent Settings Modal (Behind 3s Hold Gate) -->
+  <section id="settings-modal" class="center-modal hidden">
+    <div class="modal-card settings-card">
+      <div class="panel-header-row">
+        <h2>Parent Settings</h2>
+        <button id="btn-close-settings" class="close-x-btn" aria-label="Close">&#10005;</button>
+      </div>
+
+      <div class="setting-row">
+        <label for="slider-music">Music Volume</label>
+        <input id="slider-music" type="range" min="0" max="1" step="0.05" />
+      </div>
+      <div class="setting-row">
+        <label for="slider-sfx">Sound Effects</label>
+        <input id="slider-sfx" type="range" min="0" max="1" step="0.05" />
+      </div>
+      <div class="setting-row">
+        <label for="slider-voice">Voice Read-Aloud Volume</label>
+        <input id="slider-voice" type="range" min="0" max="1" step="0.05" />
+      </div>
+      <div class="setting-row">
+        <label for="slider-speed">Reading Speed</label>
+        <input id="slider-speed" type="range" min="0.8" max="1.15" step="0.05" />
+      </div>
+      <div class="setting-row">
+        <label for="chk-low-gfx">Low Graphics Mode (Older Tablets)</label>
+        <input id="chk-low-gfx" type="checkbox" />
+      </div>
+      <div class="setting-row">
+        <label for="chk-joystick">Show On-Screen Joystick</label>
+        <input id="chk-joystick" type="checkbox" />
+      </div>
+
+      <button id="btn-reset-save" class="danger-reset-btn">Reset Save Data</button>
+    </div>
+  </section>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

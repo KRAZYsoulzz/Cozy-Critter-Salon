@@ -1,0 +1,60 @@
+/goal
+Completely rebuild "Cozy Critter Salon & Spa" (the current version in this folder is a rejected prototype: flat sticker art, an empty pastel-rectangle map, robotic voice). Make a gorgeous, polished game for a 7-year-old girl (Lilah) that runs in a browser on desktop (mouse) and an Android tablet (touch), installable as an offline PWA.
+
+The quality bar is a premium kids' app (Toca Boca / Sago Mini level), and the world should look like a cozy, all-code three.js diorama: warm sunset light, soft shadows, bloom, swaying plants, drifting particles. Everything visual is made in code, with no image files. If something looks flat, cheap, or placeholder, it is not done.
+
+She makes her own character, walks around a cozy 3D salon, and adopts, names, and cares for three pets (a Capybara, a Pink Axolotl, and a Tiny Dik-dik) through hands-on drag-and-drop activities. Care earns Coins and Stars for a Shop of outfits and room upgrades.
+
+Core Technical & Design Constraints:
+1. All-code visuals. The world is real-time three.js (vendor three.module.js and the addons you use into /vendor so it works offline, with no CDN). Use stylized low-poly / soft-toon geometry built in code: noise terrain, instanced foliage, flowers, a stone path, a little pond with a waterfall, and the salon building with real walls, windows, roof, furniture and props. Add warm hemisphere and sun lighting, soft shadows, a gentle bloom, ACES tone mapping, fog for depth, and a sky gradient. Absolutely no empty void at the map edges: the world fades into hills, trees, and sky.
+2. Characters are 3D and alive. Pets and the avatar are built from smooth rounded primitives (capsules, spheres, lathe shapes) with toon or soft shading and outlines. They have idle breathing, blinking, ear and gill twitches, a walk cycle with bobbing (no sliding), and big squash-and-stretch reactions (happy hop, wiggle, sleepy droop, heart eyes). The capybara must read clearly as a capybara: a long barrel body, a blunt boxy snout, small round ears, and calm eyes. The axolotl has frilly pink gill stalks and a wide smile; the dik-dik has huge glossy eyes, a tiny snout, big ears, and stick legs. The same model is used everywhere (world, activities, shop, photo booth).
+3. Activity close-ups. Tapping a station smoothly moves the camera into a close-up 3D scene of that station with the pet on the table/tub. Drag-and-drop happens in that scene with screen-space pointer drags. Dirt, foam, bubbles, and water are real particle/decal effects on the pet, and the pet visibly reacts to every action (squints when scrubbed, opens its mouth as food approaches, chews with crumbs, shakes off water).
+4. Voice. Do NOT rely on speechSynthesis as the main voice. Every spoken line has an id and loads /audio/voice/<id>.mp3 if it exists (I will generate natural ElevenLabs voice files for every id). Output /audio/voice/lines.json listing every id and its exact text. Fall back to speechSynthesis only if a file is missing. Keep karaoke word highlighting (estimate timing from the clip duration).
+5. Sound and music. Web Audio synthesized SFX (pops, splashes, munches, chimes, coin jingles, footsteps) plus a gentle procedural music loop, all mixed softly. Music must be audible but never louder than the voice.
+6. Kid-first UX. Huge tap targets (at least 80px), big rounded readable text (at least 22px, ideally a friendly rounded font drawn as system-ui fallback), icons drawn in code (no emoji as icons; emoji fonts break on Android). Minimal HUD: coins, stars, the current pet, and a big home button. No fail states. Every activity step is obvious from glowing hints and arrows, not only text.
+7. Unified PointerEvents with touch-action: none. Persistent localStorage save (key cozy_critter_save_v2, with migration from v1). Parent gate (hold 3 seconds) for Settings.
+8. Performance: 60fps on a mid-range Android tablet. Use instancing, merged geometry, and capped pixel ratio, and offer a "Low graphics" setting.
+
+---
+
+/plan
+
+BUILD ORDER: Build in milestones and stop after each one with screenshots and a short summary for play-testing. Do not move on until the milestone looks premium.
+- Milestone A: The 3D world (salon exterior plus garden plus Lobby interior), the avatar with a walk cycle, the camera, and tap-to-walk. The world alone should look like a cozy diorama you'd screenshot.
+- Milestone B: All three 3D pets fully animated, adoption and naming, and pets following her.
+- Milestone C: Spa and Vet activities with full reactions.
+- Milestone D: Kitchen, Play Yard and the Catch Treats mini-game.
+- Milestone E: Shop, wardrobe, room upgrades, Photo Booth, the voice-line manifest, and polish.
+
+### Phase 1: Architecture & PWA
+1. Files: index.html, styles.css, /src (main.js, world.js, characters.js, pets.js, activities/*.js, ui.js, audio.js, voice.js, save.js, shop-data.js), /vendor (three.js), /audio/voice, manifest.json, sw.js (caches everything, including voice files).
+2. Responsive full-screen canvas with an HTML overlay UI. Landscape-first, portrait-safe, viewport-fit=cover.
+
+### Phase 2: The World (world.js)
+1. A small cozy island/valley around the salon: rolling noise terrain, a winding stone path, a pond with a little waterfall and lily pads, flower beds (hydrangeas, tulips), willow and round trees swaying in the wind, a picket fence, lanterns, and butterflies and fireflies.
+2. The salon building: a two-story cottage with a pastel exterior, a striped awning, round windows glowing warm, and a sign reading "Cozy Critter Salon & Spa".
+3. Interiors (Lobby, Vet Clinic, Spa, Kitchen & Cafe, Play Yard & Closet): each with distinct walls, floors, furniture, and props built in code (the tub with bubbles, the vet table and cabinets, the cafe counter with treats, the toy chest and slide). Walking through a door blends smoothly into the interior.
+4. A day/sunset lighting preset that stays golden and cozy.
+5. Stations glow softly and float a large, code-drawn icon above them; walking near shows a big "Let's go!" button, and the station name is spoken.
+
+### Phase 3: Avatar & Pets (characters.js, pets.js)
+1. Avatar creator: 12+ skin tones, 10 hair styles, 12 hair colors, 10 outfits, and accessories, with a live rotating 3D preview.
+2. Pets: as described in the constraints, with expression states (happy, hungry, sick, sleepy, loved) and anchor bones for hat, glasses, neck, body, and held props so every cosmetic fits all three.
+3. Pets follow her around the world, play idle mini-behaviors (sniff flowers, roll, nap), and show a thought bubble icon for their current need.
+
+### Phase 4: Activities (each with clear glowing steps, progress, particles, voice, and reactions)
+- Spa: soap and sponge scrub (foam builds up exactly where she rubs), showerhead rinse (water particles wash the foam away), towel and blow-dryer (fur gets fluffy and sparkles), and a toothbrush.
+- Vet: stethoscope (hold on the chest to hear a heartbeat), tweezers (drag either the tool OR the twig itself into the bowl, one twig at a time), thermometer and ice pack, healing cream and colorful bandages, and a vitamin gummy. Steps go in order with a big arrow to the next tool.
+- Kitchen: a picnic table of 3D snacks; the pet opens its mouth as food nears, then chomps with crumbs and a happy reaction; each pet has a favorite.
+- Play Yard: a beach ball, a squeaky duck, and a bubble wand the pet chases; Catch the Falling Treats (30 seconds, big pet, clear items, and mud only makes a funny splat).
+- Lobby: petting with a heart brush fills the Love meter; a Check-Up Clipboard of tasks, and tapping one auto-walks her there.
+
+### Phase 5: Shop, Wardrobe & Upgrades
+1. Start with 15 beautifully modeled items (tiara, giant bow, daisy crown, unicorn horn, tangerine stack, propeller beanie, heart sunglasses, mustache and monocle, cucumber masks, pink boa, superhero cape, tutu, fairy wand, boba cup, mini ukulele), with data ready to grow.
+2. A big full-screen shop with a rotating 3D try-on preview, clear owned/equipped states, and full item names.
+3. Room upgrades (3 tiers each for Spa, Clinic, Lobby, and Kitchen) visibly transform the 3D room.
+
+### Phase 6: Rewards, Photo Booth & Polish
+1. Reward moments: the pet does a celebration dance, with confetti bursts, coin flyouts to the HUD, and a fanfare.
+2. Photo Booth: a pose, a backdrop, frames, and stickers; captures the WebGL canvas; an album to view and delete photos.
+3. Definition of done: zero console errors; a smooth 60fps on a tablet; works offline after install; every drag is tested on touch and mouse; the save survives reloads; and every screen looks finished, with no tiny text, no emoji icons, no empty void, and no placeholder art. Include a screenshot of every screen in /screens for review.

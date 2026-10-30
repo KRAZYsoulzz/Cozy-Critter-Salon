@@ -1,0 +1,13 @@
+﻿import fs from 'node:fs';
+let h = fs.readFileSync('index.html','utf8');
+const rep = (a, b) => { if (!h.includes(a)) { console.log('MISS', a.slice(0,80)); return; } h = h.replace(a, b); };
+rep('<button class="world-nav-btn" data-jump-station="spa">', '<button class="world-nav-btn door door-spa" data-jump-station="spa">');
+rep('<button class="world-nav-btn" data-jump-station="vet">', '<button class="world-nav-btn door door-vet" data-jump-station="vet">');
+rep('<button class="world-nav-btn" data-jump-station="kitchen">', '<button class="world-nav-btn door door-kitchen" data-jump-station="kitchen">');
+rep('<button class="world-nav-btn" data-jump-station="lobby">', '<button class="world-nav-btn door door-lobby" data-jump-station="lobby">');
+rep('<button class="world-nav-btn" data-jump-station="yard">', '<button class="world-nav-btn door door-yard" data-jump-station="yard">');
+rep('<span class="nav-label">Spa</span>', '<span class="nav-label">Spa</span>');
+rep('<span class="nav-label">Play</span>', '<span class="nav-label">Play Yard</span>');
+rep('      <div class="action-divider"></div>\n\n      <button id="btn-call-pets"', '    </div>\n\n    <div class="world-extras">\n      <button id="btn-call-pets"');
+rep('<span class="nav-label">Style</span></button>\n    </div>', '<span class="nav-label">Style</span></button>\n    </div>');
+fs.writeFileSync('index.html', h);

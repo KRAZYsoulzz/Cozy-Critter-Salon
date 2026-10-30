@@ -1,0 +1,15 @@
+# dev-only / generated
+_archive/
+screens/
+node_modules/
+_sync.zip
+# tools temp output
+tools/*.txt
+tools/*.log
+tools/out/
+tools/tmp/
+# OS / editor
+Thumbs.db
+.DS_Store
+*.log
+.vscode/
