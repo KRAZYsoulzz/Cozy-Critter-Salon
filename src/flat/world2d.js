@@ -1,4 +1,4 @@
-﻿// 2D world: cutaway cottage, stylist avatar with tap + follow-finger movement, collision, station prompts.
+// 2D world: cutaway cottage, stylist avatar with tap + follow-finger movement, collision, station prompts.
 import { drawRoomN, drawPartition, ROOMS, RW, WORLD_W, WALK_Y0, WALK_Y1, OBSTACLE_BOXES, OBSTACLE_CIRCLES, STATIONS } from './rooms.js';
 import { makeCollider } from './collide2d.js';
 import { drawAvatar } from './avatar.js';
@@ -29,7 +29,7 @@ export class World2D {
     const a = this.av; a.t += dt; a.wave = Math.max(0, a.wave - dt);
     const j = this.joy; if (j && Math.hypot(j.x, j.y) > .18) { this.setTarget({ x: a.x + j.x * 140, y: a.y + j.y * 70 }); this.joyOn = true; } else if (this.joyOn) { this.joyOn = false; a.has = false; }
     if (a.has) { const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
-      if (d < 6) { a.has = false; } else { const st = Math.min(d, SPEED * dt), r = this.col.move(a.x, a.y, a.x + dx / d * st, a.y + dy / d * st); const moved = Math.hypot(r.x - a.x, r.z - a.y); a.x = r.x; a.y = r.z; if (moved < st * .15) { a.stall = (a.stall || 0) + dt; if (a.stall > .35 && !this.holding) a.has = false; } else a.stall = 0; if (Math.abs(dx) > 6) a.face = dx > 0 ? 1 : -1; } }
+      if (d < 6) { a.has = false; } else { const st = Math.min(d, SPEED * dt); let r = this.col.move(a.x, a.y, a.x + dx / d * st, a.y + dy / d * st); if (r.z < WALK_Y0 - 1 || r.z > WALK_Y1 + 1) r = { x: a.x, z: a.y }; const moved = Math.hypot(r.x - a.x, r.z - a.y); a.x = r.x; a.y = r.z; if (moved < st * .15) { a.stall = (a.stall || 0) + dt; if (a.stall > .35 && !this.holding) a.has = false; } else a.stall = 0; if (Math.abs(dx) > 6) a.face = dx > 0 ? 1 : -1; } }
     a.walking += ((a.has ? 1 : 0) - a.walking) * Math.min(1, dt * 10);
     const want = a.x - this.e.visW / 2; this.e.cam.x += (want - this.e.cam.x) * Math.min(1, dt * 4);
     const st = this.nearestStation(); if (st?.id !== this.station?.id) { this.station = st; this.hooks.station?.(st, !this.seen.has(st?.id)); if (st) this.seen.add(st.id); }
