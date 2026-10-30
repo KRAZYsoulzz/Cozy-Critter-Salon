@@ -1,12 +1,13 @@
 ﻿// ============================================================================
 // Cozy Critter Salon & Spa 3D - Offline PWA Service Worker (sw.js)
 // ============================================================================
-const CACHE_NAME = 'cozy-critter-3d-v11';
+const CACHE_NAME = 'cozy-critter-3d-v12';
 const CORE_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './polish.css',
+  './mobile.css',
   './vendor/fonts/Fredoka.ttf',
   './icons/icon-192.png',
   './icons/icon-512.png',
