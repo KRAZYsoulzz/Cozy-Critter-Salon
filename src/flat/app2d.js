@@ -34,7 +34,9 @@ class App {
     this.ui.syncHUD();
     this.engine.layers.push((c, e) => this.drawPreview(c, e));
     this.engine.updaters.push(dt => { const e = this.engine, port = e.H > e.W * 1.1, want = (port && this.mode === 'shop') ? Math.max(0, e.baseOffY - ((.4 * e.H) / e.scale - 505)) : 0; e.lift = (e.lift || 0) + (want - (e.lift || 0)) * Math.min(1, dt * 6); });
-    setInterval(() => { if (this.mode === 'world') { this.save.tickNeeds(); this.ui.syncHUD(); } }, 45000);
+    setInterval(() => { if (this.mode === 'world') { this.save.tickNeeds(); this.ui.syncHUD(); } }, 15000);
+    // offline catch-up: pets miss you a little while you're away (1 tick per 30 s away, max 12)
+    { const seen = +localStorage.getItem('cozy_seen') || 0, n = seen ? Math.min(12, Math.floor((Date.now() - seen) / 30000)) : 0; for (let i = 0; i < n; i++) this.save.tickNeeds(); const mark = () => localStorage.setItem('cozy_seen', String(Date.now())); mark(); setInterval(mark, 10000); document.addEventListener('visibilitychange', mark); }
     // daily welcome-back gift with a 7-day streak bonus (kept in its own localStorage key)
     setInterval(() => { if (this.mode !== 'world') return; let d = {}; try { d = JSON.parse(localStorage.getItem('cozy_daily') || '{}'); } catch (e) { d = {}; }
       const today = new Date().toDateString(); if (d.d === today) return; const y = new Date(Date.now() - 864e5).toDateString(), streak = d.d === y ? Math.min(7, (d.s || 0) + 1) : 1, gift = 10 + (streak === 7 ? 25 : 0);

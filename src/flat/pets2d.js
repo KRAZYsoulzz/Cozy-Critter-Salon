@@ -79,7 +79,8 @@ export function drawPet(c, species, t, expr, blink, eq = {}, st = null) {
 }
 
 /** Needs -> thought bubble. Returns { station, icon } or null. */
-export function petNeed(p) { const s = p.stats; if (p.ailments?.length || s.health < 70) return { station: 'vet', icon: 'cross' }; if (s.cleanliness < 60) return { station: 'spa', icon: 'sponge' }; if (s.hunger < 60) return { station: 'kitchen', icon: 'berry' }; return null; }
+// Most urgent need wins (not a fixed order), so a pet that is always dirty can't hide hunger forever.
+export function petNeed(p) { const s = p.stats, c = [[p.ailments?.length || p.fever ? 100 : 70 - s.health, { station: 'vet', icon: 'cross' }], [60 - s.cleanliness, { station: 'spa', icon: 'sponge' }], [60 - s.hunger, { station: 'kitchen', icon: 'berry' }]].filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]); return c.length ? c[0][1] : null; }
 const ICONS = { sponge: (c, x, y, s) => sponge(c, x, y, s * 1.2), berry: (c, x, y, s) => strawberry(c, x, y, s * 1.2), cross: (c, x, y, s) => { slab(c, x - 22 * s, y - 22 * s, 44 * s, 44 * s, { fill: '#ff5c6c', r: 10 * s, lw: 4 }); c.fillStyle = '#fff'; c.fillRect(x - 4 * s, y - 16 * s, 8 * s, 32 * s); c.fillRect(x - 16 * s, y - 4 * s, 32 * s, 8 * s); } };
 
 export class PetManager {

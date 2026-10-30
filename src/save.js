@@ -412,9 +412,9 @@ export class SaveManager {
     for (const petId of ['capybara', 'axolotl', 'dikdik']) {
       const pet = this.state.pets[petId];
       if (!pet) continue;
-      pet.stats.cleanliness = clampStat(pet.stats.cleanliness - 1.2);
-      pet.stats.hunger = clampStat(pet.stats.hunger - 1.4);
-      pet.stats.love = clampStat(pet.stats.love - 1.0);
+      pet.stats.cleanliness = clampStat(pet.stats.cleanliness - 2.2);
+      pet.stats.hunger = clampStat(pet.stats.hunger - 2.6);
+      pet.stats.love = clampStat(pet.stats.love - 1.5);
       if (pet.stats.cleanliness < 58 && pet.dirtSpots.length === 0) {
         pet.dirtSpots = [0, 1, 2, 3];
       }

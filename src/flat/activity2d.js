@@ -100,7 +100,7 @@ export class ActivityScene {
   finishMode(a, o) {
     if (this.active !== a || a.done) return; const sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.doneText = o.text;
     for (const k in (o.stats || {})) st.stats[k] = k === 'love' ? Math.min(100, (st.stats.love || 0) + o.stats[k]) : o.stats[k];
-    if (o.energy) st.stats.energy = Math.max(0, (st.stats.energy ?? 100) + o.energy); if (o.cure) { st.ailments = []; st.health = 100; }
+    if (o.energy) st.stats.energy = Math.max(0, (st.stats.energy ?? 100) + o.energy); if (o.cure) { st.ailments = []; st.twigs = []; st.scrapes = []; st.fever = false; st.health = 100; st.stats.health = 100; }
     this.award(a, Math.max(5, Math.round(o.coins * .55)), o.par || 40, o.quality);
     this.hooks?.reward?.();
     for (let i = 0; i < 60; i++) this.parts.push({ type: 'conf', x: 500 + (Math.random() - .5) * 500, y: 40, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 160, life: 3, c: ['#ff5c8a', '#ffd93d', '#6ec3ff', '#7ed957', '#b589f7'][i % 5], rot: Math.random() * 6 });
