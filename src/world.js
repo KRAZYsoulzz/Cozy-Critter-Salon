@@ -14,6 +14,7 @@ import {
   setObjectOpacity
 } from './gfx.js';
 import { iconSVG } from './icons.js';
+import { moveWithCollision, pushOut, dynamicCircles } from './collide.js';
 import { wallMaterials, ginghamMat, yardTurfMat, vetFloorMat, buildDecor, dressSpaTub } from './decor.js';
 
 export const ROOM_INFO = {
@@ -969,6 +970,8 @@ export class SalonWorld {
       this.kitchenTableGroup.add(cloudArch);
     }
 
+    dynamicCircles.length = 0;
+    if (lobbyTier >= 2) dynamicCircles.push([-1.6, 0.2, 0.28], [1.6, 0.2, 0.28]);
     // ---- LOBBY UPGRADES ----
     this.lobbyUpgradeGroup.clear();
     if (lobbyTier >= 2) {
@@ -1086,11 +1089,11 @@ export class SalonWorld {
   /**
    * Clamps any target coordinate `(x, z)` to the playable salon & garden courtyard.
    */
-  clampPosition(x, z) {
-    return {
-      x: Math.max(-10.2, Math.min(10.2, x)),
-      z: Math.max(-6.2, Math.min(10.8, z))
-    };
+  clampPosition(x, z, fromX, fromZ) {
+    const bx = Math.max(-10.2, Math.min(10.2, x));
+    const bz = Math.max(-6.2, Math.min(10.8, z));
+    if (fromX === undefined) return pushOut(bx, bz);
+    return moveWithCollision(fromX, fromZ, bx, bz);
   }
 
   /**

@@ -330,7 +330,14 @@ export class UIManager {
 
     if (changed) {
       this.app.sound.playBubblePop();
-      this.setSpeechPrompt(station.voiceId, `${station.name}! Tap the glowing button to play!`, true);
+      // Sparse narrator: voice only the first time each room is entered, with a global cooldown; never on plain walking.
+      this._seenStations = this._seenStations || new Set();
+      const now = performance.now();
+      const first = !this._seenStations.has(station.id);
+      this._seenStations.add(station.id);
+      const speak = first && now - (this._lastNarr || -1e9) > 12000;
+      if (speak) this._lastNarr = now;
+      this.setSpeechPrompt(station.voiceId, `${station.name}! Tap the glowing button to play!`, speak);
     }
   }
 
