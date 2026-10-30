@@ -68,7 +68,12 @@ export class ActivityScene {
     else if (s.id === 'dry') { a.wet = Math.max(0, a.wet - d * .0006); if (Math.random() < .5) this.drops(pt.x, pt.y, 1); if (a.wet <= 0) this.next(); }
     else if (s.id === 'brush') { a.stroke += d; a.shine = Math.min(1, a.stroke / 2800); if (Math.random() < .4) this.spark(pt.x, pt.y); if (a.shine >= 1) this.finish(); }
   }
-  next() { const a = this.active; a.step++; this.audio.sound?.playMarimbaNote?.(); if (a.step >= a.steps.length) return this.finish(); a.tool = a.steps[a.step].tool; this.say(a.steps[a.step].voice, a.steps[a.step].label); }
+  progress(a) {
+    if (a.done) return 1; if (a.mode) return a.mode.progress ? a.mode.progress() : 0; const n = a.steps.length, s = a.steps[a.step]; if (!s) return 1; let f = 0;
+    if (s.id === 'scrub') f = 1 - a.spots.reduce((m, q) => m + Math.max(0, q.hp), 0) / a.spots.length; else if (s.id === 'rinse') f = a.foam.length ? 1 - a.foam.reduce((m, q) => m + Math.max(0, q.a), 0) / a.foam.length : 0; else if (s.id === 'dry') f = 1 - a.wet; else if (s.id === 'brush') f = a.shine;
+    return Math.min(1, (a.step + Math.max(0, Math.min(1, f))) / n);
+  }
+  next() { const a = this.active; a.hop = .55; a.step++; this.audio.sound?.playMarimbaNote?.(); if (a.step >= a.steps.length) return this.finish(); a.tool = a.steps[a.step].tool; this.say(a.steps[a.step].voice, a.steps[a.step].label); }
   finish() {
     const a = this.active, sv = this.w.save, st = sv.state.pets[a.pid]; a.done = true; a.step = a.steps.length;
     st.stats.cleanliness = 100; st.stats.love = Math.min(100, st.stats.love + 8); st.dirtSpots = []; st.teethSparkly = true;
@@ -109,7 +114,7 @@ export class ActivityScene {
   sud(x, y) { if (Math.random() < .6) this.parts.push({ type: 'bub', x: x + (Math.random() - .5) * 40, y: y + (Math.random() - .5) * 30, vx: (Math.random() - .5) * 20, vy: -30 - Math.random() * 30, life: 1.2, r: 6 + Math.random() * 10 }); }
   drops(x, y, n) { for (let i = 0; i < n; i++) this.parts.push({ type: 'drop', x: x + (Math.random() - .5) * 50, y, vx: (Math.random() - .5) * 30, vy: 200 + Math.random() * 100, life: .7 }); }
   spark(x, y) { this.parts.push({ type: 'star', x: x + (Math.random() - .5) * 60, y: y + (Math.random() - .5) * 40, vx: (Math.random() - .5) * 40, vy: -40, life: .9, r: 8 + Math.random() * 8 }); }
-  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; if (this.isDown) a.lastInput = this.t; if (a.mode && !a.done) a.mode.update(dt); a.reaction = Math.max(0, a.reaction - dt);
+  update(dt) { this.t += dt; if (!this.active) return; const a = this.active; if (this.isDown) a.lastInput = this.t; if (a.mode && !a.done) a.mode.update(dt); a.reaction = Math.max(0, a.reaction - dt); a.hop = Math.max(0, (a.hop || 0) - dt);
     for (const p of this.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'conf') { p.vy += 40 * dt; p.rot += dt * 6; } if (p.type === 'coin') { p.age += dt; const u = Math.max(0, Math.min(1, (p.age - p.dl) / .8)), k = u * u * (3 - 2 * u); p.x = p.sx + (p.tx - p.sx) * k; p.y = p.sy + (p.ty - p.sy) * k - Math.sin(u * Math.PI) * 60; } }
     this.parts = this.parts.filter(p => p.life > 0); }
   draw(c, e) {
@@ -123,7 +128,7 @@ export class ActivityScene {
     const pet = this.pets.pets[a.pid], ps = this.w.save.state.pets[a.pid];
     if (a.mode) a.mode.draw(c, e);
     // pet + task visuals
-    if (!a.mode) { c.save(); c.translate(500, 488); c.scale(.8, .8);
+    if (!a.mode) { c.save(); const hp = a.hop > 0 ? Math.abs(Math.sin((.55 - a.hop) / .55 * Math.PI * 2)) * 26 : 0, wg = a.reaction > 0 ? Math.sin(this.t * 30) * .025 : 0; c.translate(500, 488 - hp); c.rotate(wg); c.scale(.8 * (1 + (a.reaction > 0 ? .015 : 0)), .8 * (1 - (a.reaction > 0 ? .015 : 0))); c.translate(0, 0);
     const expr = a.done ? 'happy' : a.reaction > 0 ? 'happy' : a.step === 0 ? 'sad' : 'idle';
     drawPet(c, a.pid, this.t, expr, 1, ps.equipped, { ...ps.stats, cleanliness: 100 });
     if (a.kind === 'spa') {
@@ -152,6 +157,7 @@ export class ActivityScene {
     a.steps.forEach((st, i) => { const tx = 500 + (i - (a.steps.length - 1) / 2) * 120, cur = i === a.step && !a.done, done = i < a.step || a.done;
       c.save(); c.translate(tx, 500); el(c, 0, 0, 46, 46, done ? '#b9f0b0' : cur ? '#fffdf4' : 'rgba(255,255,255,.35)', INK, cur ? 6 : 4); if (cur) { c.strokeStyle = '#ffd93d'; c.lineWidth = 4; c.beginPath(); c.arc(0, 0, 54 + Math.sin(this.t * 6) * 3, 0, TAU); c.stroke(); }
       c.globalAlpha = done ? .45 : 1; drawToolIcon(c, st.tool, 0, 0, .9); c.globalAlpha = 1; if (done) { ln(c, [[-14, 0], [-4, 12], [18, -12]], '#2f9a3f', 7); } c.restore(); });
+    if (!a.done) { const pr = this.progress(a), W = Math.min(V.vw - 220, 320), x0 = 500 - W / 2; slab(c, x0 - 4, 82, W + 8, 26, { fill: 'rgba(255,255,255,.85)', r: 13, lw: 4 }); if (pr > 0) slab(c, x0, 86, Math.max(18, W * pr), 18, { fill: '#ff8fb7', shade: '#e0608f', r: 9, lw: 0 }); star(c, x0 + W + 14, 95, 17, pr >= 1 ? '#ffd93d' : '#e9e1f3'); }
     this.drawHint(c, a);
     if (a.done) { const R = a.result || { stars: 3, coins: 0 }, k = this.t - (a.doneAt ?? this.t), tt = (a.doneText || 'All sparkly clean!').replace(/\s*\+\d+\s*$/, '');
       pill(c, 500, 120, Math.min(V.vw - 20, 560), 74, '#fffdf4'); text(c, tt, 500, 120, Math.min(36, (V.vw - 80) / (tt.length * .5)), '#ff5c8a');
