@@ -21,6 +21,7 @@ export class World2D {
   up(p) { const h = this.holding; if (!h || p.id !== h.id) return; this.holding = null;
     // quick tap keeps walking to the spot; a held drag stops where the finger lifts
     if (h.moved || p.t - h.t > 280) this.av.has = false; }
+  walkTo(x, y) { this.setTarget({ x, y }); }
   setTarget(w) { const t = this.floorTarget(w), q = this.col.pushOut(t.x, t.y); this.av.tx = q.x; this.av.ty = q.z; this.av.has = true; }
   nearestStation() { let best = null, bd = 1e9; for (const s of STATIONS) { const sx = s.room * RW + s.x, d = Math.hypot(this.av.x - sx, (this.av.y - s.y) * 1.4); if (d < 100 && d < bd) { bd = d; best = s; } } return best; }
   update(dt) {
@@ -43,5 +44,6 @@ export class World2D {
     for (const s of STATIONS) { const sx = s.room * RW + s.x; if (sx < x0 - 60 || sx > x1 + 60) continue; const on = this.station?.id === s.id; c.save(); c.translate(sx, s.y + 18); c.scale(1, .26); c.beginPath(); c.arc(0, 0, 54 + (on ? Math.sin(t * 5) * 4 : 0), 0, 6.283); c.fillStyle = on ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.22)'; c.fill(); c.lineWidth = 6; c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,.4)'; c.setLineDash([14, 12]); c.stroke(); c.restore(); }
   }
 }
+
 
 
